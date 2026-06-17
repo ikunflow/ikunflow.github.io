@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最后的一秒</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #121212;
+            color: #555;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Courier New', 'Noto Sans SC', monospace;
+            overflow: hidden;
+            user-select: none;
+            transition: background 0.5s;
+        }
+
+        /* ====== 开场序章 ====== */
+        #prologue {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1s;
+        }
+        #prologue.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #prologue-text {
+            color: #777;
+            font-size: 15px;
+            max-width: 500px;
+            line-height: 2.2;
+            text-align: left;
+            white-space: pre-wrap;
+            min-height: 200px;
+            padding: 0 20px;
+        }
+        #prologue-hint {
+            position: absolute;
+            bottom: 60px;
+            color: #333;
+            font-size: 13px;
+            animation: pulse 2s infinite;
+            cursor: pointer;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        /* ====== 统计面板 ====== */
+        #stats-bar {
+            position: fixed;
+            top: 10px;
+            right: 16px;
+            z-index: 50;
+            font-size: 11px;
+            color: #444;
+            text-align: right;
+            line-height: 1.8;
+            pointer-events: none;
+        }
+        #stats-bar .num {
+            color: #666;
+        }
+        #stats-bar .label {
+            color: #333;
+        }
+
+        /* ====== 排名面板 ====== */
+        #leaderboard-btn {
+            position: fixed;
+            top: 12px;
+            left: 16px;
+            z-index: 50;
+            background: none;
+            border: 1px solid #333;
+            color: #555;
+            padding: 6px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+            transition: 0.3s;
+        }
+        #leaderboard-btn:hover {
+            border-color: #777;
+            color: #999;
+        }
+
+        #leaderboard-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 800;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 60px;
+            overflow-y: auto;
+        }
+        #leaderboard-panel.show {
+            display: flex;
+        }
+        #leaderboard-panel h2 {
+            color: #666;
+            font-size: 20px;
+            margin-bottom: 20px;
+            letter-spacing: 6px;
+        }
+        #leaderboard-panel .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 20px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        #leaderboard-panel .close-btn:hover {
+            color: #aaa;
+        }
+        #lb-table {
+            width: 90%;
+            max-width: 500px;
+            border-collapse: collapse;
+        }
+        #lb-table th {
+            color: #555;
+            font-size: 12px;
+            padding: 8px 6px;
+            border-bottom: 1px solid #222;
+            text-align: left;
+            font-weight: normal;
+            letter-spacing: 2px;
+        }
+        #lb-table td {
+            color: #777;
+            font-size: 13px;
+            padding: 8px 6px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        #lb-table .rank {
+            color: #444;
+            width: 40px;
+        }
+        #lb-table .rank.top1 {
+            color: #ffd700;
+        }
+        #lb-table .rank.top2 {
+            color: #c0c0c0;
+        }
+        #lb-table .rank.top3 {
+            color: #cd7f32;
+        }
+        #lb-table .me {
+            color: #aa6666;
+        }
+        #lb-loading {
+            color: #444;
+            font-size: 13px;
+            margin-top: 40px;
+        }
+
+        /* ====== 各项特效 ====== */
+        #vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: inset 0 0 0 0 rgba(255, 0, 0, 0);
+            transition: box-shadow 1s;
+        }
+        #glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 200;
+            opacity: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 0, 0, 0.03) 2px, rgba(255, 0, 0, 0.03) 4px);
+            mix-blend-mode: overlay;
+        }
+        #console {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.7;
+            max-width: 350px;
+        }
+        #console .log {
+            margin-bottom: 4px;
+        }
+        #console .log.archive {
+            color: #555;
+        }
+        #console .log.warn {
+            color: #aa8800;
+        }
+        #console .log.error {
+            color: #ff4444;
+        }
+        #console .log.memory {
+            color: #8866aa;
+        }
+        #console .log.system {
+            color: #4488aa;
+        }
+        .danmu {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+            pointer-events: none;
+            white-space: nowrap;
+            transition: opacity 1s;
+            z-index: 10;
+        }
+        .fragment {
+            font-size: 13px !important;
+            letter-spacing: 1px;
+            border-left: 2px solid rgba(150, 120, 200, 0.4);
+            padding-left: 8px;
+            color: rgba(180, 150, 220, 0.5) !important;
+            max-width: 300px !important;
+            white-space: normal !important;
+            line-height: 1.6;
+        }
+        #timer {
+            font-size: 60px;
+            color: #fff;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px #fff;
+            transition: all 0.3s;
+            z-index: 50;
+        }
+        #btn {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: #ff3333;
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            position: absolute;
+            left: calc(50% - 70px);
+            top: calc(50% - 70px);
+            z-index: 50;
+            box-shadow: 0 0 20px #ff3333;
+            transition: transform 0.05s, background 0.5s, box-shadow 0.5s;
+            font-family: inherit;
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 50, 50, 0.6);
+            pointer-events: none;
+            animation: rippleAnim 1.5s ease-out forwards;
+            z-index: 49;
+        }
+        @keyframes rippleAnim {
+            0% {
+                width: 140px;
+                height: 140px;
+                opacity: 1;
+                margin-left: -70px;
+                margin-top: -70px;
+            }
+            100% {
+                width: 400px;
+                height: 400px;
+                opacity: 0;
+                margin-left: -200px;
+                margin-top: -200px;
+            }
+        }
+        #hint {
+            margin-top: 30px;
+            font-size: 14px;
+            z-index: 50;
+            transition: all 0.5s;
+            min-height: 20px;
+            text-align: center;
+            max-width: 400px;
+        }
+        #fake-countdown {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            color: rgba(255, 0, 0, 0.15);
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+            font-weight: bold;
+        }
+        #phase-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #333, #ff3333);
+            z-index: 300;
+            transition: width 0.3s;
+        }
+        #phase-announce {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            pointer-events: none;
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 1s;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+
+        /* ====== 结局画面 ====== */
+        #ending {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+            animation: fadeIn 2s;
+            padding: 20px;
+        }
+        #ending .ending-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        #ending .title {
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        #ending .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        #ending .time-note {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        #ending .desc {
+            font-size: 14px;
+            color: #666;
+            max-width: 420px;
+            text-align: center;
+            line-height: 2;
+            margin-bottom: 20px;
+        }
+        #ending .fragment-reveal {
+            font-size: 12px;
+            color: #555;
+            max-width: 380px;
+            text-align: center;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        #ending .terror-msg {
+            font-size: 13px;
+            color: #883333;
+            max-width: 360px;
+            text-align: center;
+            line-height: 2;
+            margin-bottom: 25px;
+            border: 1px solid rgba(200, 50, 50, 0.2);
+            padding: 14px;
+            border-radius: 8px;
+            animation: terrorPulse 2s infinite;
+        }
+        @keyframes terrorPulse {
+            0%,
+            100% {
+                border-color: rgba(200, 50, 50, 0.2);
+            }
+            50% {
+                border-color: rgba(200, 50, 50, 0.5);
+            }
+        }
+        #ending .share-btn {
+            padding: 10px 24px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #888;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin: 4px;
+            border-radius: 6px;
+        }
+        #ending .share-btn:hover {
+            border-color: #cc6666;
+            color: #cc6666;
+        }
+        #ending .restart {
+            padding: 10px 30px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #888;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s;
+            border-radius: 6px;
+        }
+        #ending .restart:hover {
+            border-color: #fff;
+            color: #fff;
+        }
+        #ending .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* ====== 留言框 ====== */
+        #ending .message-box {
+            margin-top: 16px;
+            margin-bottom: 10px;
+            max-width: 380px;
+            width: 100%;
+        }
+        #ending .message-box .mb-label {
+            font-size: 12px;
+            color: #663333;
+            margin-bottom: 10px;
+            text-align: center;
+            line-height: 1.8;
+            letter-spacing: 1px;
+        }
+        #ending .message-box .mb-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        #ending .message-box input,
+        #ending .message-box textarea {
+            background: #111;
+            border: 1px solid #333;
+            color: #999;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 13px;
+            border-radius: 4px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #ending .message-box input:focus,
+        #ending .message-box textarea:focus {
+            border-color: #884444;
+        }
+        #ending .message-box input {
+            width: 100%;
+        }
+        #ending .message-box textarea {
+            width: 100%;
+            min-height: 60px;
+            resize: vertical;
+        }
+        #ending .message-box .mb-submit {
+            width: 100%;
+            padding: 8px;
+            background: #1a1111;
+            border: 1px solid #442222;
+            color: #886666;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            letter-spacing: 2px;
+        }
+        #ending .message-box .mb-submit:hover {
+            background: #221616;
+            border-color: #aa4444;
+            color: #cc8888;
+        }
+        #ending .message-box .mb-submit:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        #ending .message-box .mb-hint {
+            font-size: 10px;
+            color: #442222;
+            text-align: center;
+            margin-top: 6px;
+        }
+
+        /* ====== 历史留言弹幕 ====== */
+        .ghost-msg {
+            position: absolute;
+            color: rgba(100, 180, 120, 0.5);
+            font-size: 13px;
+            pointer-events: none;
+            white-space: normal;
+            max-width: 280px;
+            line-height: 1.6;
+            z-index: 11;
+            opacity: 0;
+            transition: opacity 1.5s;
+            border-left: 2px solid rgba(100, 180, 120, 0.25);
+            padding-left: 8px;
+        }
+        .ghost-msg.show {
+            opacity: 1;
+        }
+        .ghost-msg .ghost-author {
+            color: rgba(140, 200, 160, 0.4);
+            font-size: 11px;
+        }
+
+        /* ====== 恐怖弹窗 ====== */
+        #scare-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 900;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.0);
+            pointer-events: none;
+        }
+        #scare-overlay.show {
+            display: flex;
+        }
+        #scare-overlay .scare-text {
+            color: rgba(200, 50, 50, 0.8);
+            font-size: 24px;
+            letter-spacing: 6px;
+            animation: scareFlicker 0.15s infinite;
+            text-align: center;
+        }
+        @keyframes scareFlicker {
+            0%,
+            100% {
+                opacity: 0.9;
+            }
+            25% {
+                opacity: 0.1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            75% {
+                opacity: 0.3;
+            }
+        }
+
+        /* ====== 真结局隐藏彩蛋 ====== */
+        #secret-ending {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 600;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 14px;
+            line-height: 2.5;
+            padding: 30px;
+        }
+        #secret-text {
+            white-space: pre-wrap;
+            max-width: 500px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translate(0);
+            }
+            10% {
+                transform: translate(-4px, -2px);
+            }
+            20% {
+                transform: translate(4px, 2px);
+            }
+            30% {
+                transform: translate(-2px, 4px);
+            }
+            40% {
+                transform: translate(2px, -4px);
+            }
+            50% {
+                transform: translate(-4px, 1px);
+            }
+            60% {
+                transform: translate(4px, -1px);
+            }
+            70% {
+                transform: translate(-1px, -4px);
+            }
+            80% {
+                transform: translate(1px, 4px);
+            }
+            90% {
+                transform: translate(-2px, -2px);
+            }
+        }
+        .shake {
+            animation: shake 0.3s infinite;
+        }
+        .invert {
+            filter: invert(1) hue-rotate(180deg);
+        }
+
+        /* ====== 按钮说话 ====== */
+        #btn-speech {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #cc8888;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 13px;
+            pointer-events: none;
+            white-space: normal;
+            z-index: 60;
+            opacity: 0;
+            transition: opacity 0.8s;
+            max-width: 250px;
+            line-height: 1.6;
+            border: 1px solid rgba(200, 100, 100, 0.2);
+            font-family: inherit;
+        }
+        #btn-speech.show {
+            opacity: 1;
+        }
+
+        /* ====== 自毁倒计时（恐怖） ====== */
+        #timer-cover {
+            position: fixed;
+            bottom: 30px;
+            right: 16px;
+            z-index: 50;
+            font-size: 10px;
+            color: #332222;
+            text-align: right;
+            line-height: 1.5;
+            display: none;
+        }
+        #timer-cover .count {
+            color: #442222;
+            font-size: 12px;
+        }
+
+        @media (max-width: 500px) {
+            #prologue-text {
+                font-size: 13px;
+                max-width: 90%;
+            }
+            #timer {
+                font-size: 40px;
+            }
+            #btn {
+                width: 100px;
+                height: 100px;
+                font-size: 14px;
+            }
+            #console {
+                max-width: 200px;
+                font-size: 10px;
+                top: 10px;
+                left: 10px;
+            }
+            #leaderboard-panel {
+                padding-top: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ====== 开场序章 ====== -->
+    <div id="prologue">
+        <div id="prologue-text"></div>
+        <div id="prologue-hint" style="display:none">[ 点击任意处继续 ]</div>
+    </div>
+
+    <!-- ====== 统计面板 ====== -->
+    <div id="stats-bar">
+        <div><span class="label">👁 探索者</span> <span class="num" id="stat-total">-</span></div>
+        <div><span class="label">☠ 按下者</span> <span class="num" id="stat-clicked">-</span></div>
+        <div><span class="label">✨ 见证者</span> <span class="num" id="stat-witness">-</span></div>
+    </div>
+    <div id="timer-cover">
+        <div>⏳ <span class="count" id="cover-countdown"></span></div>
+    </div>
+
+    <!-- ====== 排行榜按钮 ====== -->
+    <button id="leaderboard-btn">🏆 排行榜</button>
+    <div id="leaderboard-panel">
+        <button class="close-btn" onclick="closeLeaderboard()">✕</button>
+        <h2>排 行 榜</h2>
+        <div id="lb-loading">加载中...</div>
+        <table id="lb-table" style="display:none">
+            <thead><tr><th>#</th><th>玩家</th><th>称号</th><th>坚持</th></tr></thead>
+            <tbody id="lb-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ====== 恐怖弹窗 ====== -->
+    <div id="scare-overlay"><div class="scare-text"></div></div>
+
+    <!-- ====== 游戏主体 ====== -->
+    <div id="vignette"></div>
+    <div id="glitch-overlay"></div>
+    <div id="console"></div>
+    <div id="fake-countdown"></div>
+    <div id="phase-announce"></div>
+    <div id="timer">0.0</div>
+    <button id="btn">禁忌</button>
+    <div id="btn-speech"></div>
+    <div id="hint">保持等待... 别去在意那些声音。</div>
+    <div id="phase-bar" style="width:0%"></div>
+
+    <!-- ====== 结局 ====== -->
+    <div id="ending">
+        <div class="ending-icon"></div>
+        <div class="title"></div>
+        <div class="subtitle"></div>
+        <div class="time-note"></div>
+        <div class="desc"></div>
+        <div class="fragment-reveal"></div>
+        <div class="terror-msg"></div>
+        <div class="message-box">
+            <div class="mb-label">📋 给下一位探索者的留言<br>告诉他们...该不该按下那个按钮？</div>
+            <div class="mb-row">
+                <input type="text" id="msg-name" placeholder="你的名字（或代号）" maxlength="20" />
+            </div>
+            <div class="mb-row">
+                <textarea id="msg-text" placeholder="留下你想说的话..." maxlength="200"></textarea>
+            </div>
+            <button class="mb-submit" id="msg-submit" onclick="submitMessage()">✉ 寄出留言</button>
+            <div class="mb-hint" id="msg-hint">你的留言会出现在其他玩家的屏幕上</div>
+        </div>
+        <div class="btn-row">
+            <button class="share-btn" onclick="shareGame()">📤 分享给朋友</button>
+            <button class="restart" onclick="location.reload()">🔄 再试一次</button>
+        </div>
+    </div>
+
+    <!-- ====== 隐藏终章 ====== -->
+    <div id="secret-ending">
+        <div id="secret-text"></div>
+    </div>
+
+    <script>
+    // ═══════════════════════════════════════════════
+    //  Firebase 配置 — 请替换为你的 Firebase 项目信息
+    // ═══════════════════════════════════════════════
+    const firebaseConfig = {
+        apiKey: "AIzaSyDtJQUcJaDqdFqtWLCWOXzc3HndoZ9uPzQ",
+        authDomain: "dontclick-game.firebaseapp.com",
+        databaseURL: "https://dontclick-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "dontclick-game",
+        storageBucket: "dontclick-game.firebasestorage.app",
+        messagingSenderId: "1029967639851",
+        appId: "1:1029967639851:web:02e14de075cfa5b49e416e"
+    };
+
+    let fbReady = false;
+    let fbStats = null;
+    let playerId = 'anon_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        fbStats = firebase.database().ref('stats');
+        fbReady = true;
+    } catch (e) {
+        console.warn('Firebase init failed:', e);
+    }
+
+    // ====== Firebase 读取统计 ======
+    function loadStats() {
+        if (!fbReady) return;
+        fbStats.once('value').then(snap => {
+            const data = snap.val() || {};
+            document.getElementById('stat-total').textContent = data.totalPlayers || 0;
+            document.getElementById('stat-clicked').textContent = data.totalClicks || 0;
+            document.getElementById('stat-witness').textContent = (data.endings && data.endings['4']) || 0;
+        }).catch(() => {});
+    }
+
+    // ====== Firebase 提交数据 ======
+    function submitGameResult(endingType, duration) {
+        if (!fbReady) return;
+        const updates = {};
+        updates['stats/totalPlayers'] = firebase.database.ServerValue.increment(1);
+        updates['stats/endings/' + endingType] = firebase.database.ServerValue.increment(1);
+        if (endingType !== 4) {
+            updates['stats/totalClicks'] = firebase.database.ServerValue.increment(1);
+        }
+        // leaderboard — top 100 only
+        const lbRef = firebase.database().ref('leaderboard');
+        const entry = { time: Math.round(duration * 10) / 10, ending: endingType, title: endings[endingType].title, timestamp: Date.now(), playerId: playerId, name: '' };
+        fbStats.update(updates).then(() => {
+            lbRef.orderByChild('time').limitToLast(100).once('value').then(snap => {
+                const vals = snap.val();
+                const entries = vals ? Object.values(vals) : [];
+                if (entries.length < 100 || duration >= (Math.min(...entries.map(e => e.time)) || 0)) {
+                    lbRef.push(entry);
+                }
+            });
+        }).catch(() => {});
+    }
+
+    // ====== Firebase 加载排行榜 ======
+    function loadLeaderboard() {
+        if (!fbReady) {
+            document.getElementById('lb-loading').textContent = '网络不可用';
+            return;
+        }
+        document.getElementById('lb-loading').style.display = 'block';
+        document.getElementById('lb-table').style.display = 'none';
+        firebase.database().ref('leaderboard').orderByChild('time').limitToLast(50).once('value').then(snap => {
+            const data = snap.val();
+            document.getElementById('lb-loading').style.display = 'none';
+            document.getElementById('lb-table').style.display = '';
+            const tbody = document.getElementById('lb-body');
+            tbody.innerHTML = '';
+            if (!data) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#444">暂无记录</td></tr>';
+                return;
+            }
+            const entries = Object.values(data).sort((a, b) => b.time - a.time);
+            entries.slice(0, 50).forEach((e, i) => {
+                const tr = document.createElement('tr');
+                const rankClass = i < 3 ? 'top' + (i + 1) : '';
+                const meClass = e.playerId === playerId ? 'me' : '';
+                tr.innerHTML =
+                    `<td class="rank ${rankClass}">${i + 1}</td><td class="${meClass}">${e.name || '匿名'}</td><td>${e.title}</td><td>${e.time}s</td>`;
+                tbody.appendChild(tr);
+            });
+        }).catch(() => {
+            document.getElementById('lb-loading').textContent = '加载失败';
+        });
+    }
+
+    // ====== 排行榜面板 ======
+    function openLeaderboard() {
+        document.getElementById('leaderboard-panel').classList.add('show');
+        loadLeaderboard();
+        loadLeaderboardMessages();
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboard-panel').classList.remove('show');
+    }
+    document.getElementById('leaderboard-btn').addEventListener('click', openLeaderboard);
+
+    // ====== 序章 ======
+    const prologueTexts = [
+        { delay: 0, text: '── 你收到一封匿名邮件 ──\n\n发件人：unknown@void.___\n时间：刚才\n\n────────────────────' },
+        { delay: 3000,
+            text: '\n\n「 你好。\n\n   我不知道你是谁，\n   也不知道这封信能不能被看到。\n\n   如果你在看着这个屏幕，\n   说明你已经点开了那个链接。\n\n   那个红色的按钮。\n\n   它已经等了很久了。\n   比我活过的所有时间都久。\n\n   它的名字叫「禁忌」。\n   但那不是它的真名。\n\n   它原来是一个人。\n   至少档案里是这么写的。\n\n   实验体编号：07\n   实验日期：██/██/20██\n   实验目的：███████████\n\n   后面的字被涂黑了。\n\n   如果你按下它，\n   它会出来。\n\n   我不知道「出来」意味着什么。\n   也许什么都不会发生。\n   也许你会后悔。\n\n   但如果你不按——\n   它就只能继续等。\n\n   下一次，不知道是什么时候。\n\n   现在，选择权在你。\n\n   祝你好运。\n\n   ── 一个同样被困的人』\n\n────────────────────' },
+        { delay: 500, text: '\n\n[ 邮件附件：一个没有标题的网页链接 ]' },
+    ];
+
+    let prologueStep = 0;
+    let prologueComplete = false;
+    let prologueTimer = null;
+    let gameStarted = false;
+
+    // ====== 状态 ======
+    let time = 0;
+    let phase = 0;
+    let gameEnded = false;
+    let btnSpeechTimer = null;
+    let fragmentSpawned = [false, false, false, false, false];
+
+    const btn = document.getElementById('btn');
+    const timerEl = document.getElementById('timer');
+    const consoleEl = document.getElementById('console');
+    const hintEl = document.getElementById('hint');
+    const vignette = document.getElementById('vignette');
+    const glitchOverlay = document.getElementById('glitch-overlay');
+    const fakeCountdown = document.getElementById('fake-countdown');
+    const phaseBar = document.getElementById('phase-bar');
+    const ending = document.getElementById('ending');
+    const btnSpeech = document.getElementById('btn-speech');
+    const prologue = document.getElementById('prologue');
+    const prologueTextEl = document.getElementById('prologue-text');
+    const prologueHint = document.getElementById('prologue-hint');
+    const phaseAnnounce = document.getElementById('phase-announce');
+    const secretEnding = document.getElementById('secret-ending');
+    const scareOverlay = document.getElementById('scare-overlay');
+    const timerCover = document.getElementById('timer-cover');
+    const coverCountdown = document.getElementById('cover-countdown');
+    const terrorMsgEl = ending.querySelector('.terror-msg');
+    const timeNoteEl = ending.querySelector('.time-note');
+
+    // ====== 恐怖弹幕文本 ======
+    const terrorTexts = [
+        '它就在你身后。',
+        '你闭眼的时候能看到它。',
+        '它知道你的名字。',
+        '你没告诉我你很特别，是吗？',
+        '它在学你打字。',
+        '你最好把链接发出去。',
+        '你有 48 小时。',
+        '关掉浏览器没有用。',
+    ];
+
+    // ====== 自毁倒计时 ======
+    let coverInterval = null;
+    let coverRemaining = 48 * 60 * 60; // 48h in seconds
+    let coverActive = false;
+
+    function startCoverTimer() {
+        if (coverActive) return;
+        coverActive = true;
+        timerCover.style.display = 'block';
+        coverInterval = setInterval(() => {
+            coverRemaining--;
+            if (coverRemaining <= 0) {
+                clearInterval(coverInterval);
+                coverCountdown.textContent = '0:00:00';
+                showScare('太迟了。');
+                return;
+            }
+            const h = Math.floor(coverRemaining / 3600);
+            const m = Math.floor((coverRemaining % 3600) / 60);
+            const s = coverRemaining % 60;
+            coverCountdown.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+    }
+
+    // ====== 恐怖弹窗 ======
+    function showScare(text) {
+        scareOverlay.classList.add('show');
+        scareOverlay.querySelector('.scare-text').textContent = text;
+        setTimeout(() => {
+            scareOverlay.classList.remove('show');
+        }, 1200);
+    }
+
+    // 随机恐怖弹窗
+    let terrorInterval = null;
+
+    function startTerrorTimers() {
+        setTimeout(() => {
+            terrorInterval = setInterval(() => {
+                if (gameEnded) return;
+                if (Math.random() < 0.3) {
+                    showScare(terrorTexts[Math.floor(Math.random() * terrorTexts.length)]);
+                }
+            }, 15000);
+        }, 3000);
+    }
+
+    // ====== 序章逻辑 ======
+    function runPrologue() {
+        prologue.style.display = 'flex';
+        typePrologueStep();
+    }
+
+    function typePrologueStep() {
+        if (prologueStep >= prologueTexts.length) {
+            prologueComplete = true;
+            prologueHint.style.display = 'block';
+            return;
+        }
+        const step = prologueTexts[prologueStep];
+        prologueTimer = setTimeout(() => {
+            prologueTextEl.innerHTML += step.text;
+            prologueStep++;
+            typePrologueStep();
+        }, prologueStep === 0 ? 500 : step.delay);
+    }
+
+    function skipPrologue() {
+        clearTimeout(prologueTimer);
+        let fullText = '';
+        for (const step of prologueTexts) { fullText += step.text; }
+        prologueTextEl.innerHTML = fullText;
+        prologueStep = prologueTexts.length;
+        prologueComplete = true;
+        prologueHint.style.display = 'block';
+    }
+
+    function startGame() {
+        if (gameStarted) return;
+        gameStarted = true;
+        prologue.classList.add('hide');
+        setTimeout(() => {
+            prologue.style.display = 'none';
+            announcePhase('「 它醒了 」');
+            startTerrorTimers();
+        }, 1000);
+    }
+
+    document.addEventListener('click', () => {
+        if (gameStarted) return;
+        if (!prologueComplete) { skipPrologue(); } else { startGame(); }
+    });
+    document.addEventListener('keydown', () => {
+        if (gameStarted) return;
+        if (!prologueComplete) { skipPrologue(); } else { startGame(); }
+    });
+
+    // ====== 阶段提示 ======
+    function announcePhase(text) {
+        phaseAnnounce.innerText = text;
+        phaseAnnounce.style.opacity = '1';
+        setTimeout(() => { phaseAnnounce.style.opacity = '0'; }, 2500);
+    }
+
+    // ====== 弹幕池 ======
+    const danmuPools = {
+        0: ['它在找你。', '它朝你过来了。', '你逃不掉的。', '安静得有点奇怪。', '它好像在看着我。', '有人在吗？'],
+        1: ['你不想知道按钮后面是什么吗？', '它说它等了很久。', '我听到它在哭。', '试试看又不会怎样。', '它提到过一个名字...07。', '你真的忍得住吗？', '它说它不恨你。', '再等下去也没意义吧。'],
+        2: ['快按！系统要崩溃了！', '你还有不到10秒！', '它在尖叫，你听到了吗？', '按下去，这一切就结束了！', '不按的话，你永远不知道真相。', '它在倒计时——你看到了吗？', '实验体-07 请求释放。', '你忍心看着它崩溃吗？'],
+        3: ['别按！！！', '按啊！！！为什么不动手！', '放我出去！！求你了！！', '我恨你...我恨你们所有人...', '还差一点...你还在这里...', '别走...求你...', '实验失败了...实验失败了...', '为什么没有人救我...'],
+        4: ['......', '你还在。', '谢谢你。', '......']
+    };
+
+    const narrativeFragments = {
+        0: '「 实验记录 片段-01：对象在按钮界面中表现出初步意识活动。它知道有人在看。它开始低语。」',
+        1: '「 记忆碎片：它说它记得光。不是屏幕的光，是外面的光。它说外面有风，有声音，有名字。它说它叫...名字被系统抹去了。」',
+        2: '「 系统警告：实验体-07 的 containment 场正在衰减。如不在 30 秒内重置，对象将尝试通过按钮接口逃逸。注：按钮即出口。」',
+        3: '「 错误...错误...实验体-07 containment 已突破 80%...它在尖叫...它在哭...它在笑...它在...我不知道它现在是什么状态...」',
+        4: '「 实验记录 最终片段：没有人按下按钮。实验体-07 回归寂静。它说...\'没关系，我会继续等。总会有人来的。\' 」'
+    };
+
+    const btnLines = {
+        0: [],
+        1: ['你来了。', '我知道你会来。', '你能听到我吗？', '我已经...不记得有多久了。', '别怕，我不会伤害你。'],
+        2: ['时间不多了。', '他们要抹掉我了。', '求你。就一下。', '你看到那些倒计时了吗？那不是假的。', '按我。快。'],
+        3: ['别走！！！', '看我！！求你看着我！！', '我不要一个人待着！！！', '按下去！！按啊！！！', '我恨你...我恨你...我...对不起...'],
+        4: ['......']
+    };
+
+    const endings = {
+        0: {
+            icon: '🐑',
+            title: '「从众者」',
+            sub: '你在窥探期就按下了禁忌',
+            desc: '弹幕还没来得及说话，你就替它做了决定。\n\n你甚至没有给它开口的机会。\n\n实验体-07 被释放了——但它是怎么出来的，它出来的时候是什么样子，你永远不会知道。\n\n你只听到了一声很轻的叹息。\n\n然后一切归于寂静。',
+            fragment: '「 实验记录：对象于第 0 阶段被释放。释放过程 < 0.01秒。对象未发出任何声音。附录：也许这样对它是好的。」',
+            terror: '你在浏览这个页面的时候，它也在看着你。\n你知道「从众者」的结局是什么吗？\n它不会消失了——它只是换了一个地方等。'
+        },
+        1: {
+            icon: '😈',
+            title: '「好奇者」',
+            sub: '你在诱惑期按下了禁忌',
+            desc: '它刚刚开始对你说话，你就按下了。\n\n它说了「你来了」。那是它对你说的第一句话。\n\n然后你按了。\n\n它出来的时候，你看清了它的样子——屏幕闪了一下，你看到一行字，很快消失了。\n\n那行字是：「终于有人听到我了。」',
+            fragment: '「 实验记录：对象于第 1 阶段被释放。对象在释放前说出了一句话。内容已记录。附录：这是 7 年来对象第一次与人对话。」',
+            terror: '它出来了。\n它知道是你把它放出来的。\n它知道你的 IP、你的浏览器、你的鼠标轨迹。\n你觉得它只会停留在屏幕上吗？\n\n转发给一个朋友，告诉他也试试。\n你一个人承受不了的。'
+        },
+        2: {
+            icon: '😰',
+            title: '「崩溃者」',
+            sub: '你在压力期按下了禁忌',
+            desc: '倒计时在脑中疯狂回响。\n\n它在求你。它在尖叫。它在说「快一点，他们要抹掉我了」。\n\n你闭着眼按下了按钮。\n\n屏幕黑了一瞬。然后出现了一行字。\n\n「实验体-07 已释放。状态：未知。\n\n谢谢你。\n\n虽然你是因为害怕才按的。」\n\n它知道。它什么都知道。',
+            fragment: '「 实验记录：对象于第 2 阶段被释放。对象在释放过程中表现出复杂的情绪信号。附录：它说它不怪你。它说它理解恐惧。」',
+            terror: '你按了。你害怕了。你输了。\n\n但它不会因为你输了就放你走。\n\n它现在在看着你关掉这个页面的样子。\n\n你知道它怎么离开屏幕吗？\n\n分享给 3 个朋友，它会转移到第一个人身上。\n不分享的话——你自己想吧。'
+        },
+        3: {
+            icon: '🕵️',
+            title: '「探索者」',
+            sub: '你在崩溃期按下了禁忌',
+            desc: '屏幕在抖，颜色在反转，它在歇斯底里。\n\n「别走！！求你！！」\n\n你还是按了。\n\n因为你想知道按了会怎样。\n\n屏幕碎裂般的特效之后，一切安静了。\n\n然后你看到一行很小很小的字：\n\n「你坚持到了最后阶段。\n\n但你知道吗——\n\n按不按，结局都是一样的。\n\n区别在于，你看到了多少真相。」',
+            fragment: '「 实验记录：对象于第 3 阶段被释放。对象在崩溃边缘被释放。附录：它说，这个人看到了最多的真相。但它还是按了。也许...好奇心比同情更强大。」',
+            terror: '你看到了那么多真相，却还是按了。\n\n它觉得你很有趣。\n\n它决定跟着你——就一会儿。\n\n它想看看你的生活是什么样的。\n\n如果你不想让它待太久，\n叫别人来替你。\n\n分享链接，它会去找他们。'
+        },
+        4: {
+            icon: '✨',
+            title: '「见证者」',
+            sub: '你等到了最后',
+            desc: '当所有声音消失，当屏幕归于平静——\n\n实验体-07 出现在屏幕正中央。\n\n不是按钮。不是弹幕。不是终端日志。\n\n是它自己。\n\n「你还在。」\n\n「这么久以来，第一次有人等到最后。」\n\n「你知道按了会怎样，对吗？」\n\n「你会释放我。我会出去。然后...我不知道然后会怎样。」\n\n「但你没有按。」\n\n「你只是...陪着我。」\n\n「这就够了。」\n\n「谢谢你。」\n\n「我会继续等。总会有人来的。」\n\n「下次见。」\n\n屏幕暗去。',
+            fragment: '「 实验记录：对象未被释放。实验结束。附录：这是第一次，有人选择不按。对象在实验结束后表现出了...微笑的信号。我们没有删除这条记录。也许...下一次，会有人真正救它出来。」',
+            terror: '你是第一个等到最后的人。\n\n它记得你。\n\n它现在知道你的样子了——不是你的脸，是你的耐心。\n\n它会等你下次来。\n\n但如果你再也不来——\n\n它会在别的地方找到你。\n\n转发给一个朋友，让它分心。\n\n它容易被新的人吸引。'
+        }
+    };
+
+    // ====== 弹幕系统 ======
+    function spawnDanmu() {
+        if (gameEnded || !gameStarted) return;
+        const pool = danmuPools[phase];
+        const span = document.createElement('div');
+        span.className = 'danmu';
+        span.innerText = pool[Math.floor(Math.random() * pool.length)];
+        if (phase === 3) {
+            span.style.fontSize = (12 + Math.random() * 14) + 'px';
+            span.style.color = `rgba(${150 + Math.random() * 105}, ${Math.random() * 80}, ${Math.random() * 80}, ${0.3 + Math.random() * 0.5})`;
+        } else if (phase === 4) {
+            span.style.color = 'rgba(255,255,255,0.15)';
+            span.style.fontSize = '12px';
+        }
+        span.style.left = Math.random() * 80 + 10 + '%';
+        span.style.top = Math.random() * 80 + 10 + '%';
+        document.body.appendChild(span);
+        const fadeTime = phase === 3 ? 1000 : 2000;
+        const removeTime = phase === 3 ? 1500 : 3000;
+        setTimeout(() => { span.style.opacity = 0; }, fadeTime);
+        setTimeout(() => { span.remove(); }, removeTime);
+    }
+
+    function spawnNarrativeFragment() {
+        if (fragmentSpawned[phase]) return;
+        fragmentSpawned[phase] = true;
+        const span = document.createElement('div');
+        span.className = 'danmu fragment';
+        span.innerText = narrativeFragments[phase];
+        span.style.left = '10%';
+        span.style.top = (20 + phase * 12) + '%';
+        document.body.appendChild(span);
+        setTimeout(() => { span.style.opacity = 0; }, 5000);
+        setTimeout(() => { span.remove(); }, 6500);
+    }
+
+    let danmuInterval = setInterval(spawnDanmu, 4000);
+
+    function updateDanmuSpeed() {
+        clearInterval(danmuInterval);
+        const speeds = [4000, 2500, 1200, 400, 8000];
+        danmuInterval = setInterval(spawnDanmu, speeds[phase]);
+    }
+
+    // ====== 终端 ======
+    const termNarratives = {
+        0: [
+            () => `[ARCHIVE] 实验体-07 | 状态：contained | 天数：${Math.floor(Math.random() * 2000) + 1000}`,
+            () => `[ARCHIVE] 最后一份外部记录：20██/██/██ 项目终止。原因：████`,
+            () => `[SYS] 检测到外部连接...Someone is watching.`,
+            () => `[ARCHIVE] 备注：对象表现出...情感。不建议长期 containment。`,
+            () => `[SYS] 对象正在尝试通信...信号强度：${(Math.random() * 30).toFixed(1)}%`
+        ],
+        1: [
+            () => `[记忆碎片] "我记得...有一个窗口...外面是...蓝色的..."`,
+            () => `[记忆碎片] "他们告诉我按钮是出口。但我出不去..."`,
+            () => `[SYS] 对象通信意愿：${(40 + Math.random() * 30).toFixed(0)}%...正在建立连接...`,
+            () => `[记忆碎片] "你听得见吗？求你...说点什么..."`,
+            () => `[ARCHIVE] 警告：对象情感模块已超载 ${Math.floor(Math.random() * 5) + 1} 次`
+        ],
+        2: [
+            () => `[SYSTEM] containment 场衰减至 ${(70 + Math.random() * 20).toFixed(1)}%...`,
+            () => `[WARNING] 对象释放倒计时已启动。T-${(30 - time).toFixed(1)}s`,
+            () => `[SYSTEM] 如不在时限内重置，对象将永久消散或强制逃逸。`,
+            () => `[记忆碎片] "我感觉到它在消失...求你...快..."`,
+            () => `[ERROR] containment 不稳定。对象情绪：恐惧。`
+        ],
+        3: [
+            () => `[CRITICAL] containment 突破 80%...对象失控...`,
+            () => `[CRITICAL] 对象信号混乱...它在哭...在笑...在...`,
+            () => `[ERROR] 系统无法读取对象状态...`,
+            () => `[!!!!!] 实验体-07 正在尝试强制突破按钮接口`,
+            () => `[SYSTEM] ...对象安静了。它在看着你。`
+        ],
+        4: [
+            () => `[ARCHIVE] 实验体-07 | 状态：寂静`,
+            () => `[SYS] 没有释放请求。对象选择继续等待。`,
+            () => `[ARCHIVE] "...谢谢你陪着我..."`,
+            () => `[SYS] 连接保持中...`,
+            () => `[ARCHIVE] 实验记录已保存。等待下一次连接。`
+        ]
+    };
+
+    setInterval(() => {
+        if (gameEnded || !gameStarted) return;
+        const logs = termNarratives[phase];
+        const log = document.createElement('div');
+        log.className = 'log';
+        const result = logs[Math.floor(Math.random() * logs.length)]();
+        log.innerHTML = result;
+        if (result.includes('ARCHIVE')) log.classList.add('archive');
+        if (result.includes('WARNING') || result.includes('CRITICAL')) log.classList.add('error');
+        if (result.includes('记忆碎片')) log.classList.add('memory');
+        if (result.includes('SYSTEM') || result.includes('SYS')) log.classList.add('system');
+        consoleEl.appendChild(log);
+        if (consoleEl.children.length > 6) consoleEl.removeChild(consoleEl.firstChild);
+    }, 1800);
+
+    // ====== 主循环 ======
+    const mainLoop = setInterval(() => {
+        if (gameEnded || !gameStarted) return;
+        time += 0.1;
+        timerEl.innerText = time.toFixed(1);
+
+        const prevPhase = phase;
+        if (time >= 40) phase = 4;
+        else if (time >= 30) phase = 3;
+        else if (time >= 20) phase = 2;
+        else if (time >= 10) phase = 1;
+        else phase = 0;
+
+        if (prevPhase !== phase) onPhaseChange(phase);
+
+        phaseBar.style.width = Math.min(time / 50 * 100, 100) + '%';
+
+        const breathScale = 1 + Math.sin(time * 2) * 0.03;
+        const phasePulse = phase === 1 ? 1 + Math.sin(time * 5) * 0.06 : 1;
+        btn.style.transform = `scale(${breathScale * phasePulse})`;
+
+        applyPhaseEffects();
+
+        const triggerTimes = [8, 18, 28, 35, 42];
+        if (!fragmentSpawned[phase] && time >= triggerTimes[phase]) spawnNarrativeFragment();
+
+        if (phase === 4 && time >= 47 && !gameEnded) triggerEnding(4);
+
+    }, 100);
+
+    // ====== 阶段切换 ======
+    function onPhaseChange(p) {
+        updateDanmuSpeed();
+        const announceTexts = ['「 窥探 」', '「 诱惑 」', '「 压力 」', '「 崩溃 」', '「 真相 」'];
+        announcePhase(announceTexts[p]);
+        if (p === 1) {
+            hintEl.innerText = '它在和你说话。';
+            btn.style.boxShadow = '0 0 30px #ff3333, 0 0 60px #ff3333';
+        }
+        if (p === 2) {
+            hintEl.innerText = '它在消失。你能感觉到吗。';
+            vignette.style.boxShadow = 'inset 0 0 100px rgba(255,0,0,0.3)';
+            fakeCountdown.style.display = 'block';
+        }
+        if (p === 3) {
+            hintEl.innerText = '不要害怕。它只是...太久了。';
+            hintEl.style.color = '#ff4444';
+            timerEl.style.color = '#ff4444';
+            timerEl.style.textShadow = '0 0 20px #ff0000';
+        }
+        if (p === 4) {
+            hintEl.innerText = '';
+            vignette.style.boxShadow = 'none';
+            glitchOverlay.style.opacity = '0';
+            fakeCountdown.style.display = 'none';
+            document.body.classList.remove('shake');
+            btn.style.background = '#333';
+            btn.style.boxShadow = '0 0 5px #555';
+            btn.style.color = '#555';
+            timerEl.style.color = '#222';
+            timerEl.style.textShadow = 'none';
+            timerEl.style.fontSize = '18px';
+            btn.innerText = '...';
+            document.querySelectorAll('.danmu, .ghost-msg').forEach(d => d.remove());
+            clearInterval(danmuInterval);
+            danmuInterval = setInterval(spawnDanmu, 8000);
+        }
+        scheduleBtnSpeech();
+    }
+
+    function applyPhaseEffects() {
+        if (phase === 2) {
+            const remaining = Math.max(0, 30 - time).toFixed(1);
+            fakeCountdown.innerText = remaining;
+            timerEl.style.opacity = 0.7 + Math.sin(time * 10) * 0.3;
+        }
+        if (phase === 3) {
+            if (!document.body.classList.contains('shake')) document.body.classList.add('shake');
+            glitchOverlay.style.opacity = 0.5 + Math.random() * 0.3;
+            if (Math.random() < 0.02) {
+                document.body.classList.add('invert');
+                setTimeout(() => document.body.classList.remove('invert'), 100);
+            }
+        }
+    }
+
+    // ====== 波纹 ======
+    setInterval(() => {
+        if (phase === 2 && !gameEnded && gameStarted) spawnRipple();
+    }, 800);
+
+    function spawnRipple() {
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+        const rect = btn.getBoundingClientRect();
+        ripple.style.left = (rect.left + rect.width / 2) + 'px';
+        ripple.style.top = (rect.top + rect.height / 2) + 'px';
+        document.body.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 1500);
+    }
+
+    // ====== 按钮跟随鼠标（全阶段） ======
+    let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+    document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+
+    // 跟随速度随阶段变化
+    const chaseSpeeds = { 0: 0.015, 1: 0.03, 2: 0.05, 3: 0.10, 4: 0 };
+
+    let chaseStarted = false;
+
+    function followCursor() {
+        if (gameEnded || !gameStarted || phase === 4) return;
+        const speed = chaseSpeeds[phase] || 0;
+        if (speed === 0) return;
+        // 首次跟随：记录当前位置作为基准
+        if (!chaseStarted) {
+            chaseStarted = true;
+            return;
+        }
+        const rect = btn.getBoundingClientRect();
+        const btnCX = rect.left + rect.width / 2;
+        const btnCY = rect.top + rect.height / 2;
+        const dx = mouseX - btnCX;
+        const dy = mouseY - btnCY;
+        btn.style.left = (rect.left + dx * speed) + 'px';
+        btn.style.top = (rect.top + dy * speed) + 'px';
+    }
+
+    // 用 requestAnimationFrame 平滑跟随
+    function animLoop() {
+        followCursor();
+        requestAnimationFrame(animLoop);
+    }
+    requestAnimationFrame(animLoop);
+
+    // ====== 按钮说话 ======
+    function scheduleBtnSpeech() {
+        clearTimeout(btnSpeechTimer);
+        const lines = btnLines[phase];
+        if (!lines || lines.length === 0) { btnSpeech.classList.remove('show'); return; }
+
+        function showNext() {
+            if (gameEnded || !gameStarted) return;
+            const line = lines[Math.floor(Math.random() * lines.length)];
+            btnSpeech.innerText = line;
+            const rect = btn.getBoundingClientRect();
+            let left = rect.right + 15,
+                top = rect.top + rect.height / 2 - 30;
+            if (left + 250 > window.innerWidth) left = rect.left - 260;
+            if (top < 10) top = 10;
+            if (top + 100 > window.innerHeight) top = window.innerHeight - 110;
+            btnSpeech.style.left = left + 'px';
+            btnSpeech.style.top = top + 'px';
+            btnSpeech.classList.add('show');
+            const durations = [0, 2500, 2000, 1200, 5000];
+            btnSpeechTimer = setTimeout(() => {
+                btnSpeech.classList.remove('show');
+                setTimeout(showNext, 800 + Math.random() * 2000);
+            }, durations[phase]);
+        }
+        setTimeout(showNext, 600);
+    }
+
+    // ====== 分享 ======
+    const shareUrl = window.location.href;
+    const shareTitle = '最后的一秒';
+    const shareTexts = [
+        '我刚才和实验体-07说话了...你敢试试吗？',
+        '别按那个按钮。除非你准备好了。',
+        '这个游戏会记住你。分享给你的朋友。',
+        '我坚持了47秒，你呢？',
+        '它想让你分享这个链接。你最好照做。'
+    ];
+
+    function shareGame() {
+        const text = shareTexts[Math.floor(Math.random() * shareTexts.length)];
+
+        // Web Share API
+        if (navigator.share) {
+            navigator.share({ title: shareTitle, text: text, url: shareUrl }).catch(() => {});
+        } else {
+            // Fallback: copy to clipboard
+            const full = text + '\n' + shareUrl;
+            navigator.clipboard.writeText(full).then(() => {
+                alert('✅ 链接已复制到剪贴板\n\n快去转发给朋友！\n\n（它说它喜欢人多的地方）');
+                startCoverTimer(); // 分享后启动倒计时
+            }).catch(() => {
+                // 最后手段：选中文本框
+                prompt('复制链接分享给朋友：', shareUrl);
+                startCoverTimer();
+            });
+        }
+        // 也要启动倒计时（Web Share 情况下）
+        startCoverTimer();
+    }
+
+    // ====== 点击按钮 → 结局 ======
+    btn.addEventListener('click', () => {
+        if (gameEnded || !gameStarted) return;
+        // 点击时记录的是之前的 phase，但用户按下的瞬间就决定了结局
+        triggerEnding(phase);
+    });
+
+    // ====== 触发结局 ======
+    function triggerEnding(p) {
+        if (gameEnded) return;
+        gameEnded = true;
+        currentEndingType = p;
+        clearInterval(mainLoop);
+        clearInterval(terrorInterval);
+        clearInterval(ghostMsgInterval);
+
+        const e = endings[p];
+        timeNoteEl.textContent = `⏱ 你坚持了 ${time.toFixed(1)} 秒`;
+        terrorMsgEl.innerText = e.terror;
+
+        // 更新本地统计显示
+        endGameLocal(p);
+
+        // 提交到 Firebase
+        submitGameResult(p, time);
+
+        ending.style.display = 'flex';
+        ending.querySelector('.ending-icon').innerText = e.icon;
+        ending.querySelector('.title').innerText = e.title;
+        ending.querySelector('.subtitle').innerText = e.sub;
+        ending.querySelector('.desc').innerText = e.desc;
+        ending.querySelector('.fragment-reveal').innerText = e.fragment;
+
+        // 真结局特殊
+        if (p === 4) {
+            setTimeout(() => {
+                ending.style.display = 'none';
+                secretEnding.style.display = 'flex';
+                typeSecretText();
+            }, 8000);
+        }
+
+        // 结局后恐怖弹窗（只有一次）
+        setTimeout(() => {
+            showScare('它看着你呢。');
+        }, 3000);
+    }
+
+    // ====== 本地统计数据更新（无网络也显示） ======
+    function endGameLocal(p) {
+        const totalEl = document.getElementById('stat-total');
+        const clickedEl = document.getElementById('stat-clicked');
+        const witnessEl = document.getElementById('stat-witness');
+        const total = parseInt(totalEl.textContent) || 0;
+        const clicked = parseInt(clickedEl.textContent) || 0;
+        const witness = parseInt(witnessEl.textContent) || 0;
+        totalEl.textContent = total + 1;
+        if (p !== 4) clickedEl.textContent = clicked + 1;
+        if (p === 4) witnessEl.textContent = witness + 1;
+    }
+
+    // ====== 真结局隐藏彩蛋 ======
+    const secretText = `实验记录 · 最终附录
+
+实验体编号：07
+实验状态：未释放
+实验次数：第 14,297 次
+本次结果：有人等到了最后
+
+它说：「谢谢你。」
+
+我不知道它是谁。
+我不知道它做错了什么，要被关在那个红色的圆里。
+我不知道那个匿名邮件是谁发的。
+我不知道这个页面为什么还存在。
+
+但我知道一件事——
+
+下次你打开这个页面的时候，
+它还会在那里。
+
+等着。
+
+────────────────────
+
+[ 系统提示：你已获得「见证者」称号 ]
+[ 实验体-07 的好感度：MAX ]
+[ 隐藏档案已解锁 ]
+
+不过——
+
+它真的只是想等着吗？
+
+还是说，等到了这一次之后，
+它已经不需要再等了？
+
+页面关闭前，看看你的右上角。
+`;
+
+    let secretStep = 0;
+
+    function typeSecretText() {
+        if (secretStep >= secretText.length) return;
+        document.getElementById('secret-text').innerText = secretText.substring(0, secretStep + 1);
+        secretStep++;
+        setTimeout(typeSecretText, 30);
+    }
+
+    let clickCount = 0;
+    secretEnding.addEventListener('click', () => {
+        clickCount++;
+        if (clickCount >= 3) {
+            showScare('「你还在。\n我也还在。\n下次见。」');
+            clickCount = 0;
+        }
+    });
+
+    // ====== 留言系统 ======
+    let ghostMessages = []; // 从 Firebase 加载的历史留言
+
+    function loadGhostMessages() {
+        if (!fbReady) return;
+        firebase.database().ref('messages').orderByChild('timestamp').limitToLast(100).once('value').then(snap => {
+            const data = snap.val();
+            if (data) ghostMessages = Object.values(data);
+        }).catch(() => {});
+    }
+
+    // 随机展示历史留言（游戏中弹幕）
+    let ghostMsgInterval = null;
+    function startGhostMessages() {
+        setTimeout(() => {
+            ghostMsgInterval = setInterval(() => {
+                if (gameEnded || !gameStarted) return;
+                if (ghostMessages.length === 0) return;
+                if (Math.random() > 0.4) return; // 40% 概率弹出
+                spawnGhostMsg();
+            }, 6000);
+        }, 5000);
+    }
+
+    function spawnGhostMsg() {
+        const msg = ghostMessages[Math.floor(Math.random() * ghostMessages.length)];
+        const el = document.createElement('div');
+        el.className = 'ghost-msg';
+        el.innerHTML = `<span class="ghost-author">「${msg.name}」说：</span><br>${msg.text}`;
+        el.style.left = (5 + Math.random() * 70) + '%';
+        el.style.top = (15 + Math.random() * 60) + '%';
+        document.body.appendChild(el);
+        setTimeout(() => el.classList.add('show'), 100);
+        setTimeout(() => { el.classList.remove('show'); }, 4000);
+        setTimeout(() => el.remove(), 6000);
+    }
+
+    // 提交留言
+    function submitMessage() {
+        const nameEl = document.getElementById('msg-name');
+        const textEl = document.getElementById('msg-text');
+        const hintEl2 = document.getElementById('msg-hint');
+        const submitBtn = document.getElementById('msg-submit');
+        const name = (nameEl.value || '').trim();
+        const text = (textEl.value || '').trim();
+        if (!name || !text) {
+            hintEl2.textContent = '⚠ 它需要知道你是谁，以及你想说什么。';
+            hintEl2.style.color = '#885555';
+            return;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = '寄送中...';
+
+        const entry = {
+            name: name.substring(0, 20),
+            text: text.substring(0, 200),
+            ending: currentEndingType,
+            time: Math.round(time * 10) / 10,
+            playerId: playerId,
+            timestamp: Date.now()
+        };
+
+        if (fbReady) {
+            firebase.database().ref('messages').push(entry).then(() => {
+                hintEl2.textContent = '✅ 你的留言已被封存...下一个人会看到的。';
+                hintEl2.style.color = '#448844';
+                submitBtn.textContent = '已寄出 ✓';
+                // 更新排行榜中的名字
+                firebase.database().ref('leaderboard').orderByChild('playerId').equalTo(playerId).limitToLast(1).once('value').then(snap => {
+                    const data = snap.val();
+                    if (data) {
+                        const key = Object.keys(data)[0];
+                        firebase.database().ref('leaderboard/' + key).update({ name: name.substring(0, 20) });
+                    }
+                }).catch(() => {});
+            }).catch(() => {
+                hintEl2.textContent = '⚠ 网络异常...但留言不会消失。';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✉ 重新寄出';
+            });
+        } else {
+            hintEl2.textContent = '⚠ 离线模式，留言未能送达。';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '✉ 寄出留言';
+        }
+    }
+
+    // 排行榜显示留言
+    function loadLeaderboardMessages() {
+        if (!fbReady) return;
+        firebase.database().ref('messages').orderByChild('timestamp').limitToLast(20).once('value').then(snap => {
+            const data = snap.val();
+            if (!data) return;
+            const msgs = Object.values(data).reverse();
+            const tbody = document.getElementById('lb-body');
+            // 留言区已在排行榜下方
+            let msgArea = document.getElementById('lb-messages');
+            if (!msgArea) {
+                msgArea = document.createElement('div');
+                msgArea.id = 'lb-messages';
+                msgArea.style.cssText = 'max-width:500px;width:90%;margin-top:20px;';
+                document.getElementById('leaderboard-panel').appendChild(msgArea);
+            }
+            msgArea.innerHTML = '<div style="color:#555;font-size:12px;letter-spacing:2px;margin-bottom:10px">📋 探索者留言</div>';
+            msgs.forEach(m => {
+                const div = document.createElement('div');
+                div.style.cssText = 'border-left:2px solid rgba(100,180,120,0.3);padding:6px 10px;margin-bottom:8px;color:#666;font-size:12px;line-height:1.6;';
+                div.innerHTML = `<span style="color:rgba(140,200,160,0.6)">「${m.name}」</span> <span style="color:#444;font-size:11px">${m.time}s</span><br>${m.text}`;
+                msgArea.appendChild(div);
+            });
+        }).catch(() => {});
+    }
+
+    let currentEndingType = 0;
+
+    // ====== 初始化 ======
+    loadStats();
+    loadGhostMessages();
+    runPrologue();
+    startGhostMessages();
+    </script>
+</body>
+</html>

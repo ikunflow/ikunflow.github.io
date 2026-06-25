@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
-import { posts, getAllTags } from "@/data/posts";
+import { useAllPosts } from "@/hooks/usePosts";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PostListItem from "@/components/PostListItem";
@@ -9,12 +9,18 @@ import AnimatedSection from "@/components/AnimatedSection";
 
 export default function Posts() {
   const [activeTag, setActiveTag] = useState<string>("");
-  const tags = getAllTags();
+  const { posts, loading } = useAllPosts();
+
+  const tags = useMemo(() => {
+    const tagSet = new Set<string>();
+    posts.forEach((post) => post.tags.forEach((tag) => tagSet.add(tag)));
+    return Array.from(tagSet);
+  }, [posts]);
 
   const filteredPosts = useMemo(() => {
     if (!activeTag) return posts;
     return posts.filter((post) => post.tags.includes(activeTag));
-  }, [activeTag]);
+  }, [activeTag, posts]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -61,7 +67,11 @@ export default function Posts() {
           </AnimatedSection>
 
           <div className="max-w-4xl">
-            {filteredPosts.length > 0 ? (
+            {loading ? (
+              <div className="py-20 text-center">
+                <p className="text-stone-500">加载文章中...</p>
+              </div>
+            ) : filteredPosts.length > 0 ? (
               filteredPosts.map((post, index) => (
                 <AnimatedSection key={post.slug} delay={100 * (index + 1)}>
                   <PostListItem post={post} />
@@ -71,7 +81,9 @@ export default function Posts() {
               <AnimatedSection>
                 <div className="py-20 text-center">
                   <p className="text-stone-500">
-                    没有找到带有「{activeTag}」标签的文章。
+                    {activeTag
+                      ? `没有找到带有「${activeTag}」标签的文章。`
+                      : "还没有文章。"}
                   </p>
                 </div>
               </AnimatedSection>

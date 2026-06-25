@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Gamepad2 } from "lucide-react";
-import { posts, getFeaturedPosts, formatDate } from "@/data/posts";
+import { useMemo } from "react";
+import { useAllPosts } from "@/hooks/usePosts";
+import { formatDisplayDate } from "@/lib/posts";
 import { getFeaturedGames } from "@/data/games";
 import { author } from "@/data/author";
 import Header from "@/components/Header";
@@ -10,9 +12,13 @@ import GameCard from "@/components/GameCard";
 import AnimatedSection from "@/components/AnimatedSection";
 
 export default function Home() {
-  const featuredPosts = getFeaturedPosts();
+  const { posts, loading } = useAllPosts();
+  const featuredPosts = useMemo(
+    () => posts.filter((post) => post.featured),
+    [posts]
+  );
+  const recentPosts = useMemo(() => posts.slice(0, 3), [posts]);
   const featuredGames = getFeaturedGames();
-  const recentPosts = posts.slice(0, 3);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -161,23 +167,27 @@ export default function Home() {
             </AnimatedSection>
 
             <div className="max-w-3xl">
-              {recentPosts.map((post, index) => (
-                <AnimatedSection key={post.slug} delay={100 * (index + 1)}>
-                  <article className="group py-6 border-b border-stone-200/60 last:border-b-0">
-                    <Link to={`/posts/${post.slug}`}>
-                      <div className="text-xs text-stone-400 mb-2">
-                        {formatDate(post.date)}
-                      </div>
-                      <h3 className="font-serif text-lg font-semibold text-ink group-hover:text-accent transition-colors">
-                        {post.title}
-                      </h3>
-                      <p className="mt-2 text-sm text-stone-600 line-clamp-2 leading-relaxed">
-                        {post.summary}
-                      </p>
-                    </Link>
-                  </article>
-                </AnimatedSection>
-              ))}
+              {loading ? (
+                <p className="text-stone-500 py-6">加载文章中...</p>
+              ) : (
+                recentPosts.map((post, index) => (
+                  <AnimatedSection key={post.slug} delay={100 * (index + 1)}>
+                    <article className="group py-6 border-b border-stone-200/60 last:border-b-0">
+                      <Link to={`/posts/${post.slug}`}>
+                        <div className="text-xs text-stone-400 mb-2">
+                          {formatDisplayDate(post.date)}
+                        </div>
+                        <h3 className="font-serif text-lg font-semibold text-ink group-hover:text-accent transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="mt-2 text-sm text-stone-600 line-clamp-2 leading-relaxed">
+                          {post.summary}
+                        </p>
+                      </Link>
+                    </article>
+                  </AnimatedSection>
+                ))
+              )}
             </div>
           </div>
         </section>

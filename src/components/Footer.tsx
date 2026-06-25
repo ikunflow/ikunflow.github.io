@@ -1,4 +1,5 @@
-import { Github, Twitter, Mail, Rss, Heart } from "lucide-react";
+import { Github, Twitter, Mail, Rss, Heart, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { author } from "@/data/author";
 
 const socialIcons = {
@@ -48,9 +49,18 @@ export default function Footer() {
           <span>
             © {currentYear} {author.name}. All rights reserved.
           </span>
-          <span className="flex items-center gap-1">
-            Made with <Heart className="h-3 w-3 text-accent" /> and React
-          </span>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/admin"
+              className="flex items-center gap-1 hover:text-accent transition-colors"
+            >
+              <Settings className="h-3 w-3" />
+              管理
+            </Link>
+            <span className="flex items-center gap-1">
+              Made with <Heart className="h-3 w-3 text-accent" /> and React
+            </span>
+          </div>
         </div>
       </div>
     </footer>

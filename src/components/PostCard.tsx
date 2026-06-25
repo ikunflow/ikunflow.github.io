@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
-import type { Post } from "@/data/posts";
-import { formatDate } from "@/data/posts";
+import type { Post } from "@/lib/posts";
+import { formatDisplayDate } from "@/lib/posts";
 import TagBadge from "./TagBadge";
 import LikeButton from "./LikeButton";
 
@@ -16,7 +16,7 @@ export default function PostCard({ post }: PostCardProps) {
         <div className="flex items-center gap-3 text-xs text-stone-500 mb-4">
           <span className="flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5" />
-            {formatDate(post.date)}
+            {formatDisplayDate(post.date)}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />

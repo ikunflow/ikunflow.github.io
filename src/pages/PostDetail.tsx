@@ -1,6 +1,7 @@
 import { useParams, Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { posts, getPostBySlug, formatDate } from "@/data/posts";
+import { usePost, useAllPosts } from "@/hooks/usePosts";
+import { formatDisplayDate } from "@/lib/posts";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
@@ -11,7 +12,20 @@ import AnimatedSection from "@/components/AnimatedSection";
 
 export default function PostDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const post = slug ? getPostBySlug(slug) : undefined;
+  const { post, loading } = usePost(slug);
+  const { posts } = useAllPosts();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-stone-500">加载文章中...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!post) {
     return <Navigate to="/404" replace />;
@@ -45,7 +59,7 @@ export default function PostDetail() {
                 <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-stone-500">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    {formatDate(post.date)}
+                    {formatDisplayDate(post.date)}
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />

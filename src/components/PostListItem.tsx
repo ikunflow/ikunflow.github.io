@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Calendar, Clock } from "lucide-react";
-import type { Post } from "@/data/posts";
-import { formatDate } from "@/data/posts";
+import type { Post } from "@/lib/posts";
+import { formatDisplayDate } from "@/lib/posts";
 import TagBadge from "./TagBadge";
 import LikeButton from "./LikeButton";
 
@@ -17,7 +17,7 @@ export default function PostListItem({ post }: PostListItemProps) {
           {new Date(post.date).getFullYear()}
         </div>
         <div className="text-sm font-medium text-stone-600">
-          {formatDate(post.date)}
+          {formatDisplayDate(post.date)}
         </div>
       </div>
 

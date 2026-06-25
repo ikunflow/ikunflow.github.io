@@ -29,7 +29,7 @@ export default function Header() {
           >
             <Feather className="h-6 w-6 text-accent" />
             <span className="font-serif text-xl font-semibold tracking-tight">
-              墨白集
+              橙猫猫的空间
             </span>
           </Link>
 

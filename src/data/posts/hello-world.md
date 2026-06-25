@@ -2,7 +2,7 @@
 title: 你好，世界
 slug: hello-world
 date: 2024-12-20
-summary: 这是墨白集的第一篇文章，聊聊为什么开始写博客，以及这个站点的初衷。
+summary: 这是橙猫猫的空间的第一篇文章，聊聊为什么开始写博客，以及这个站点的初衷。
 tags: ["随笔", "生活"]
 featured: true
 readingTime: 3

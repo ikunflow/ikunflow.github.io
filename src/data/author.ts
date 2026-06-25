@@ -19,9 +19,9 @@ export interface TimelineItem {
 }
 
 export const author: Author = {
-  name: "墨白",
+  name: "橙猫猫",
   role: "独立游戏开发者 / 写作者",
-  avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=mobai",
+  avatar: "/avatar.jpg",
   bio: "热爱技术与文字，也热爱用游戏讲故事。在这里记录独立游戏开发、技术学习、产品思考与生活碎片。",
   location: "中国 · 上海",
   social: {

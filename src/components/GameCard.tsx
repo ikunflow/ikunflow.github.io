@@ -1,25 +1,22 @@
-import { ExternalLink, Github, Monitor, Smartphone, Eye, Heart } from "lucide-react";
-import type { Game } from "@/data/games";
+import { Link } from "react-router-dom";
+import { ExternalLink, Eye, Heart } from "lucide-react";
+import type { Game } from "@/lib/games";
 import { useViewCount } from "@/hooks/useViewCount";
 import { useLikes } from "@/hooks/useLikes";
-
-const platformIcons: Record<string, React.ReactNode> = {
-  PC: <Monitor className="h-3.5 w-3.5" />,
-  Mac: <Monitor className="h-3.5 w-3.5" />,
-  Web: <ExternalLink className="h-3.5 w-3.5" />,
-  Mobile: <Smartphone className="h-3.5 w-3.5" />,
-};
 
 interface GameCardProps {
   game: Game;
 }
 
 export default function GameCard({ game }: GameCardProps) {
-  const { views } = useViewCount("games", game.id);
-  const { likes, liked, toggleLike } = useLikes("games", game.id);
+  const { views } = useViewCount("games", game.slug);
+  const { likes, liked, toggleLike } = useLikes("games", game.slug);
 
   return (
-    <article className="group flex flex-col h-full rounded-xl border border-stone-200 bg-white/60 backdrop-blur-sm overflow-hidden hover:shadow-soft hover:border-accent/20 transition-all duration-300">
+    <Link
+      to={`/games/${game.slug}`}
+      className="group flex flex-col h-full rounded-xl border border-stone-200 bg-white/60 backdrop-blur-sm overflow-hidden hover:shadow-soft hover:border-accent/20 transition-all duration-300"
+    >
       <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
         <img
           src={game.cover}
@@ -36,39 +33,21 @@ export default function GameCard({ game }: GameCardProps) {
       </div>
 
       <div className="flex flex-col flex-1 p-6">
-        <div className="flex items-center gap-2 text-xs text-stone-500 mb-3">
-          <span>{game.engine}</span>
-          <span>·</span>
-          <span>{game.releaseDate}</span>
-        </div>
-
         <h3 className="font-serif text-xl font-semibold text-ink group-hover:text-accent transition-colors">
           {game.title}
         </h3>
 
-        <p className="mt-3 text-sm text-stone-600 leading-relaxed flex-1">
+        <p className="mt-3 text-sm text-stone-600 leading-relaxed flex-1 line-clamp-3">
           {game.summary}
         </p>
 
         <div className="mt-4 flex flex-wrap gap-1.5">
-          {game.platforms.map((platform) => (
+          {(game.tags || []).map((tag) => (
             <span
-              key={platform}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-warm-100 text-xs text-stone-600"
-            >
-              {platformIcons[platform] || null}
-              {platform}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {game.techStack.map((tech) => (
-            <span
-              key={tech}
+              key={tag}
               className="px-2 py-0.5 rounded text-xs text-stone-500 border border-stone-200"
             >
-              {tech}
+              {tag}
             </span>
           ))}
         </div>
@@ -78,46 +57,19 @@ export default function GameCard({ game }: GameCardProps) {
             <Eye className="h-3.5 w-3.5" />
             {views}
           </span>
-          <button
-            type="button"
-            onClick={toggleLike}
-            className={`inline-flex items-center gap-1 transition-colors ${
-              liked ? "text-accent" : "hover:text-accent"
-            }`}
-            aria-label={liked ? "取消点赞" : "点赞"}
+          <span
+            className={`inline-flex items-center gap-1 ${liked ? "text-accent" : ""}`}
           >
-            <Heart
-              className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`}
-            />
+            <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
             {likes}
-          </button>
-        </div>
-
-        <div className="mt-4 flex items-center gap-3 pt-4 border-t border-stone-100">
-          {game.demoUrl && (
-            <a
-              href={game.demoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-dark transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-              试玩
-            </a>
-          )}
-          {game.repoUrl && (
-            <a
-              href={game.repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-accent transition-colors"
-            >
-              <Github className="h-4 w-4" />
-              源码
-            </a>
+          </span>
+          {(game.devLogs || []).length > 0 && (
+            <span className="text-stone-400">
+              {game.devLogs.length} 篇日志
+            </span>
           )}
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

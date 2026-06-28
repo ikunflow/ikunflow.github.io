@@ -1,4 +1,4 @@
-import type { TimelineItem } from "@/data/author";
+import type { TimelineItem } from "@/lib/profile";
 
 interface TimelineProps {
   items: TimelineItem[];

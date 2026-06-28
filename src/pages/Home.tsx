@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Gamepad2 } from "lucide-react";
 import { useMemo } from "react";
 import { useAllPosts } from "@/hooks/usePosts";
+import { useAllGames } from "@/hooks/useGames";
+import { useProfile } from "@/hooks/useProfile";
 import { formatDisplayDate } from "@/lib/posts";
-import { getFeaturedGames } from "@/data/games";
-import { author } from "@/data/author";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
@@ -13,12 +13,14 @@ import AnimatedSection from "@/components/AnimatedSection";
 
 export default function Home() {
   const { posts, loading } = useAllPosts();
+  const { games: allGames } = useAllGames();
+  const { profile } = useProfile();
   const featuredPosts = useMemo(
     () => posts.filter((post) => post.featured),
     [posts]
   );
   const recentPosts = useMemo(() => posts.slice(0, 3), [posts]);
-  const featuredGames = getFeaturedGames();
+  const featuredGames = useMemo(() => allGames.filter((g) => g.featured), [allGames]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -26,21 +28,32 @@ export default function Home() {
 
       <main className="flex-1">
         <section className="relative overflow-hidden border-b border-stone-200/60">
-          <div className="absolute inset-0 bg-gradient-to-br from-warm-100/50 via-paper to-stone-100/30" />
+          {profile.background ? (
+            <div className="absolute inset-0">
+              <img src={profile.background} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40" />
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-warm-100/50 via-paper to-stone-100/30" />
+          )}
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
           <div className="absolute top-1/2 -left-24 w-72 h-72 bg-warm-200/30 rounded-full blur-3xl" />
 
           <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
             <div className="max-w-3xl">
               <AnimatedSection>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-stone-200 text-xs text-stone-600 mb-6">
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs mb-6 ${
+                  profile.background ? "bg-white/20 border-white/30 text-white/90" : "bg-white/70 border-stone-200 text-stone-600"
+                }`}>
                   <Sparkles className="h-3.5 w-3.5 text-accent" />
                   <span>欢迎来访</span>
                 </div>
               </AnimatedSection>
 
               <AnimatedSection delay={100}>
-                <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-tight tracking-tight">
+                <h1 className={`font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight ${
+                  profile.background ? "text-white" : "text-ink"
+                }`}>
                   在代码与文字之间，
                   <br />
                   <span className="text-accent">寻找生活的诗意。</span>
@@ -48,8 +61,10 @@ export default function Home() {
               </AnimatedSection>
 
               <AnimatedSection delay={200}>
-                <p className="mt-6 text-lg sm:text-xl text-stone-600 leading-relaxed max-w-2xl">
-                  这里是 {author.name} 的个人空间，记录独立游戏开发、技术学习、产品思考与生活碎片。慢下来，才能看得更清楚。
+                <p className={`mt-6 text-lg sm:text-xl leading-relaxed max-w-2xl ${
+                  profile.background ? "text-white/80" : "text-stone-600"
+                }`}>
+                  这里是 {profile.name} 的个人空间，记录独立游戏开发、技术学习、产品思考与生活碎片。慢下来，才能看得更清楚。
                 </p>
               </AnimatedSection>
 

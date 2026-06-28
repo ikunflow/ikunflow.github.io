@@ -1,6 +1,6 @@
 import { Github, Twitter, Mail, Rss, Heart, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
-import { author } from "@/data/author";
+import { useProfile } from "@/hooks/useProfile";
 
 const socialIcons = {
   github: Github,
@@ -11,6 +11,7 @@ const socialIcons = {
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { profile } = useProfile();
 
   return (
     <footer className="border-t border-stone-200/60 bg-stone-50/50">
@@ -18,15 +19,15 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <h3 className="font-serif text-lg font-semibold text-ink">
-              {author.name}
+              {profile.name}
             </h3>
             <p className="mt-1 text-sm text-stone-500 max-w-xs">
-              {author.bio}
+              {profile.bio}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            {Object.entries(author.social).map(([key, url]) => {
+            {Object.entries(profile.social || {}).map(([key, url]) => {
               const Icon = socialIcons[key as keyof typeof socialIcons];
               if (!Icon || !url) return null;
               return (
@@ -47,7 +48,7 @@ export default function Footer() {
 
         <div className="mt-10 pt-6 border-t border-stone-200/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stone-400">
           <span>
-            © {currentYear} {author.name}. All rights reserved.
+            © {currentYear} {profile.name}. All rights reserved.
           </span>
           <div className="flex items-center gap-4">
             <Link

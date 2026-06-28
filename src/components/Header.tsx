@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Feather } from "lucide-react";
+import { Menu, X, Feather, Settings, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { path: "/", label: "首页" },
@@ -13,6 +14,7 @@ const navItems = [
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -50,6 +52,19 @@ export default function Header() {
                 )}
               </Link>
             ))}
+            {!loading && (
+              <Link
+                to={user ? "/admin" : "/login"}
+                className={`ml-2 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  user
+                    ? "bg-accent/10 text-accent hover:bg-accent/20"
+                    : "border border-stone-200 text-stone-600 hover:border-accent/40 hover:text-accent"
+                }`}
+              >
+                {user ? <Settings className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                {user ? "管理" : "登录"}
+              </Link>
+            )}
           </nav>
 
           <button
@@ -81,6 +96,20 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
+            {!loading && (
+              <Link
+                to={user ? "/admin" : "/login"}
+                onClick={() => setMobileOpen(false)}
+                className={`px-4 py-3 rounded-md text-base font-medium transition-colors flex items-center gap-2 ${
+                  user
+                    ? "bg-accent/10 text-accent"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-ink"
+                }`}
+              >
+                {user ? <Settings className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                {user ? "管理" : "登录"}
+              </Link>
+            )}
           </nav>
         </div>
       )}

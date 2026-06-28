@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
-import { getProfile, updateProfile, Profile, TimelineItem } from "@/lib/profile";
+import { getProfile, updateProfile, Profile } from "@/lib/profile";
 import { author as localAuthor, timeline as localTimeline } from "@/data/author";
+import { getCache, setCache } from "@/lib/cache";
+
+const CACHE_KEY = "cache_profile";
 
 // 将本地 author 数据适配为 Profile
 const localProfile: Profile = {
@@ -22,16 +25,30 @@ export function useProfile() {
 
   useEffect(() => {
     let cancelled = false;
+
+    // 1. 先读缓存秒开
+    const cached = getCache<Profile>(CACHE_KEY, 30 * 60 * 1000); // 30 分钟
+    if (cached) {
+      setProfile({
+        ...localProfile,
+        ...cached,
+        social: { ...localProfile.social, ...(cached.social || {}) },
+      });
+      setLoading(false);
+    }
+
+    // 2. 后台请求 Firestore
     getProfile()
       .then((data) => {
         if (!cancelled) {
           if (data) {
-            // 合并：Firestore 数据优先，缺失字段用本地数据补充
-            setProfile({
+            const merged = {
               ...localProfile,
               ...data,
               social: { ...localProfile.social, ...(data.social || {}) },
-            });
+            };
+            setProfile(merged);
+            setCache(CACHE_KEY, merged);
           }
           setLoading(false);
         }

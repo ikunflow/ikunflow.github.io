@@ -8,6 +8,10 @@ import {
   Game,
 } from "@/lib/games";
 import { games as localGames } from "@/data/games";
+import { getCache, setCache, clearCache } from "@/lib/cache";
+
+const CACHE_KEY = "cache_games";
+const SLUG_CACHE_PREFIX = "cache_game_";
 
 // 将本地旧 Game 结构适配为新的 Game
 function adaptLocalGame(g: typeof localGames[number]): Game {
@@ -33,16 +37,28 @@ export function useAllGames() {
 
   useEffect(() => {
     let cancelled = false;
+
+    const cached = getCache<Game[]>(CACHE_KEY, 10 * 60 * 1000);
+    if (cached && cached.length > 0) {
+      setGames(cached);
+      setLoading(false);
+    }
+
     getGames()
       .then((data) => {
         if (!cancelled) {
-          setGames(data.length > 0 ? data : localGames.map(adaptLocalGame));
+          if (data.length > 0) {
+            setGames(data);
+            setCache(CACHE_KEY, data);
+          } else if (!cached) {
+            setGames(localGames.map(adaptLocalGame));
+          }
           setLoading(false);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setGames(localGames.map(adaptLocalGame));
+          if (!cached) setGames(localGames.map(adaptLocalGame));
           setError(err.message);
           setLoading(false);
         }
@@ -61,11 +77,20 @@ export function useGame(slug: string | undefined) {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
+
+    const slugCacheKey = SLUG_CACHE_PREFIX + slug;
+    const cached = getCache<Game | null>(slugCacheKey, 10 * 60 * 1000);
+    if (cached) {
+      setGame(cached);
+      setLoading(false);
+    }
+
     getGameBySlug(slug)
       .then((data) => {
         if (!cancelled) {
           if (data) {
             setGame(data);
+            setCache(slugCacheKey, data);
           } else {
             const local = localGames.find((g) => g.id === slug);
             setGame(local ? adaptLocalGame(local) : null);
@@ -75,8 +100,10 @@ export function useGame(slug: string | undefined) {
       })
       .catch((err) => {
         if (!cancelled) {
-          const local = localGames.find((g) => g.id === slug);
-          setGame(local ? adaptLocalGame(local) : null);
+          if (!cached) {
+            const local = localGames.find((g) => g.id === slug);
+            setGame(local ? adaptLocalGame(local) : null);
+          }
           setError(err.message);
           setLoading(false);
         }
@@ -87,4 +114,4 @@ export function useGame(slug: string | undefined) {
   return { game, loading, error };
 }
 
-export { createGame, updateGame, deleteGame };
+export { createGame, updateGame, deleteGame, clearCache };

@@ -8,6 +8,10 @@ import {
   Post,
 } from "@/lib/posts";
 import { posts as localPosts, getPostBySlug as getLocalPostBySlug } from "@/data/posts";
+import { getCache, setCache, clearCache } from "@/lib/cache";
+
+const CACHE_KEY = "cache_posts";
+const SLUG_CACHE_PREFIX = "cache_post_";
 
 export function useAllPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -16,16 +20,30 @@ export function useAllPosts() {
 
   useEffect(() => {
     let cancelled = false;
+
+    // 1. 先读本地缓存，秒开
+    const cached = getCache<Post[]>(CACHE_KEY, 10 * 60 * 1000); // 10 分钟
+    if (cached && cached.length > 0) {
+      setPosts(cached);
+      setLoading(false);
+    }
+
+    // 2. 后台请求 Firestore 更新
     getPosts()
       .then((data) => {
         if (!cancelled) {
-          setPosts(data.length > 0 ? data : (localPosts as Post[]));
+          if (data.length > 0) {
+            setPosts(data);
+            setCache(CACHE_KEY, data);
+          } else if (!cached) {
+            setPosts(localPosts as Post[]);
+          }
           setLoading(false);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setPosts(localPosts as Post[]);
+          if (!cached) setPosts(localPosts as Post[]);
           setError(err.message);
           setLoading(false);
         }
@@ -46,16 +64,26 @@ export function usePost(slug: string | undefined) {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
+
+    const slugCacheKey = SLUG_CACHE_PREFIX + slug;
+    const cached = getCache<Post | null>(slugCacheKey, 10 * 60 * 1000);
+    if (cached) {
+      setPost(cached);
+      setLoading(false);
+    }
+
     getPostBySlug(slug)
       .then((data) => {
         if (!cancelled) {
-          setPost(data || (getLocalPostBySlug(slug) as Post | null));
+          const result = data || (getLocalPostBySlug(slug) as Post | null);
+          setPost(result);
+          if (result) setCache(slugCacheKey, result);
           setLoading(false);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setPost(getLocalPostBySlug(slug) as Post | null);
+          if (!cached) setPost(getLocalPostBySlug(slug) as Post | null);
           setError(err.message);
           setLoading(false);
         }
@@ -68,4 +96,5 @@ export function usePost(slug: string | undefined) {
   return { post, loading, error };
 }
 
-export { createPost, updatePost, deletePost };
+// 写操作后清除缓存
+export { createPost, updatePost, deletePost, clearCache };

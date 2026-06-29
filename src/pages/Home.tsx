@@ -40,48 +40,54 @@ export default function Home() {
           <div className="absolute top-1/2 -left-24 w-72 h-72 bg-warm-200/30 rounded-full blur-3xl" />
 
           <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
-            <div className="max-w-3xl">
+            <div className="max-w-2xl text-center mx-auto">
               <AnimatedSection>
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs mb-6 ${
-                  profile.background ? "bg-white/20 border-white/30 text-white/90" : "bg-white/70 border-stone-200 text-stone-600"
-                }`}>
-                  <Sparkles className="h-3.5 w-3.5 text-accent" />
-                  <span>欢迎来访</span>
-                </div>
-              </AnimatedSection>
-
-              <AnimatedSection delay={100}>
                 <h1 className={`font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight ${
                   profile.background ? "text-white" : "text-ink"
                 }`}>
-                  在代码与文字之间，
-                  <br />
-                  <span className="text-accent">寻找生活的诗意。</span>
+                  Hi~
                 </h1>
               </AnimatedSection>
 
-              <AnimatedSection delay={200}>
-                <p className={`mt-6 text-lg sm:text-xl leading-relaxed max-w-2xl ${
+              <AnimatedSection delay={100}>
+                <p className={`mt-4 text-lg sm:text-xl leading-relaxed ${
                   profile.background ? "text-white/80" : "text-stone-600"
                 }`}>
-                  这里是 {profile.name} 的个人空间，记录独立游戏开发、技术学习、产品思考与生活碎片。慢下来，才能看得更清楚。
+                  {profile.name} 的小窝，偶尔写点东西、做点游戏。
                 </p>
               </AnimatedSection>
 
-              <AnimatedSection delay={300}>
-                <div className="mt-8 flex flex-wrap items-center gap-4">
+              <AnimatedSection delay={200}>
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                   <Link
                     to="/posts"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors shadow-glow"
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                      profile.background
+                        ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                        : "bg-ink text-white hover:bg-ink/90"
+                    }`}
                   >
-                    浏览文章
-                    <ArrowRight className="h-4 w-4" />
+                    看看文章
                   </Link>
                   <Link
-                    to="/about"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-stone-300 text-stone-700 text-sm font-medium hover:border-accent/40 hover:bg-warm-50 transition-colors"
+                    to="/games"
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                      profile.background
+                        ? "bg-white/10 text-white/90 hover:bg-white/20 border border-white/20"
+                        : "border border-stone-300 text-stone-700 hover:border-accent/40"
+                    }`}
                   >
-                    了解更多
+                    玩玩游戏
+                  </Link>
+                  <Link
+                    to="/bookmarks"
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                      profile.background
+                        ? "bg-white/10 text-white/90 hover:bg-white/20 border border-white/20"
+                        : "border border-stone-300 text-stone-700 hover:border-accent/40"
+                    }`}
+                  >
+                    翻翻收藏
                   </Link>
                 </div>
               </AnimatedSection>

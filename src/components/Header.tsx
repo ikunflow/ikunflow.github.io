@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Feather, Settings, LogIn } from "lucide-react";
+import { Menu, X, Feather, Settings, LogIn, Bookmark } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { path: "/", label: "首页" },
   { path: "/posts", label: "文章" },
   { path: "/games", label: "游戏" },
+  { path: "/bookmarks", label: "收藏" },
   { path: "/guestbook", label: "留言" },
   { path: "/about", label: "关于" },
 ];

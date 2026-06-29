@@ -7,6 +7,7 @@ const Posts = lazy(() => import("@/pages/Posts"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
 const Games = lazy(() => import("@/pages/Games"));
 const GameDetail = lazy(() => import("@/pages/GameDetail"));
+const Bookmarks = lazy(() => import("@/pages/Bookmarks"));
 const Guestbook = lazy(() => import("@/pages/Guestbook"));
 const About = lazy(() => import("@/pages/About"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/posts/:slug" element={<PostDetail />} />
             <Route path="/games" element={<Games />} />
             <Route path="/games/:slug" element={<GameDetail />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/guestbook" element={<Guestbook />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />

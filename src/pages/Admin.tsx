@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllPosts, createPost, updatePost, deletePost } from "@/hooks/usePosts";
 import { useAllGames, createGame, updateGame, deleteGame } from "@/hooks/useGames";
+import { useAllBookmarks, createBookmark, updateBookmark, deleteBookmark } from "@/hooks/useBookmarks";
 import { useProfile, updateProfile } from "@/hooks/useProfile";
 import { Post } from "@/lib/posts";
 import { Game, DevLog } from "@/lib/games";
+import { Bookmark } from "@/lib/bookmarks";
 import { Profile, TimelineItem } from "@/lib/profile";
 
-type Tab = "posts" | "games" | "profile";
+type Tab = "posts" | "games" | "bookmarks" | "profile";
 
 const emptyPost: Omit<Post, "id"> = {
   slug: "",
@@ -34,6 +36,14 @@ const emptyGame: Omit<Game, "id"> = {
   featured: false,
 };
 
+const emptyBookmark: Omit<Bookmark, "id"> = {
+  title: "",
+  url: "",
+  description: "",
+  category: "",
+  favicon: "",
+};
+
 export default function Admin() {
   const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +63,11 @@ export default function Admin() {
   const [gameTagInput, setGameTagInput] = useState("");
   const [editingLogIndex, setEditingLogIndex] = useState<number | null>(null);
   const [logInput, setLogInput] = useState<DevLog>({ title: "", date: "", content: "" });
+
+  // Bookmarks
+  const { bookmarks, loading: bookmarksLoading, error: bookmarksError } = useAllBookmarks();
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | Omit<Bookmark, "id"> | null>(null);
+  const [savingBookmark, setSavingBookmark] = useState(false);
 
   // Profile
   const { profile: loadedProfile } = useProfile();
@@ -201,6 +216,42 @@ export default function Admin() {
     const logs = [...(editingGame.devLogs || [])];
     logs[index] = { ...logs[index], [field]: value };
     setEditingGame({ ...editingGame, devLogs: logs });
+  };
+
+  // ===== Bookmarks handlers =====
+  const handleSaveBookmark = async () => {
+    if (!editingBookmark) return;
+    if (!editingBookmark.title || !editingBookmark.url) {
+      setMessage("请填写标题和网址");
+      return;
+    }
+    setSavingBookmark(true);
+    setMessage("");
+    try {
+      if ("id" in editingBookmark && editingBookmark.id) {
+        await updateBookmark(editingBookmark.id, editingBookmark);
+        setMessage("收藏已更新");
+      } else {
+        await createBookmark(editingBookmark);
+        setMessage("收藏已添加");
+      }
+      setEditingBookmark(null);
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      setMessage("保存失败：" + (err as Error).message);
+    } finally {
+      setSavingBookmark(false);
+    }
+  };
+
+  const handleDeleteBookmark = async (id: string) => {
+    if (!confirm("确定要删除这个收藏吗？")) return;
+    try {
+      await deleteBookmark(id);
+      window.location.reload();
+    } catch (err) {
+      setMessage("删除失败：" + (err as Error).message);
+    }
   };
 
   // ===== Profile handlers =====
@@ -417,6 +468,55 @@ export default function Admin() {
     );
   }
 
+  // ===== Bookmark editing view =====
+  if (editingBookmark) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold font-serif text-ink">
+            {"id" in editingBookmark ? "编辑收藏" : "添加收藏"}
+          </h1>
+          <button onClick={() => setEditingBookmark(null)} className="text-ink/60 hover:text-ink transition-colors">
+            返回列表
+          </button>
+        </div>
+        {message && (
+          <div className="mb-4 p-3 bg-accent/10 text-accent-dark text-sm rounded-lg">{message}</div>
+        )}
+        <div className="space-y-4 paper p-6 rounded-xl shadow-sm">
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1">网站标题</label>
+            <input type="text" value={editingBookmark.title} onChange={(e) => setEditingBookmark({ ...editingBookmark, title: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="GitHub" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1">网址</label>
+            <input type="url" value={editingBookmark.url} onChange={(e) => setEditingBookmark({ ...editingBookmark, url: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="https://github.com" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1">描述</label>
+            <textarea value={editingBookmark.description} onChange={(e) => setEditingBookmark({ ...editingBookmark, description: e.target.value })} rows={3} className="w-full px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="简短描述这个网站..." />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-ink/80 mb-1">分类</label>
+              <input type="text" value={editingBookmark.category} onChange={(e) => setEditingBookmark({ ...editingBookmark, category: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="开发工具 / 设计资源 / 学习" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink/80 mb-1">Favicon URL（可选）</label>
+              <input type="text" value={editingBookmark.favicon || ""} onChange={(e) => setEditingBookmark({ ...editingBookmark, favicon: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="留空则自动获取" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={handleSaveBookmark} disabled={savingBookmark} className="px-6 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50">
+              {savingBookmark ? "保存中..." : "保存收藏"}
+            </button>
+            <button onClick={() => setEditingBookmark(null)} className="px-6 py-2.5 border border-ink/10 rounded-lg hover:bg-ink/5 transition-colors">取消</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ===== Profile editing view =====
   if (editingProfile) {
     return (
@@ -584,6 +684,15 @@ export default function Admin() {
           {activeTab === "games" && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />}
         </button>
         <button
+          onClick={() => setActiveTab("bookmarks")}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+            activeTab === "bookmarks" ? "text-accent" : "text-stone-500 hover:text-ink"
+          }`}
+        >
+          收藏管理
+          {activeTab === "bookmarks" && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />}
+        </button>
+        <button
           onClick={() => setActiveTab("profile")}
           className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
             activeTab === "profile" ? "text-accent" : "text-stone-500 hover:text-ink"
@@ -705,6 +814,63 @@ export default function Admin() {
                         <div className="flex justify-end gap-2">
                           <button onClick={() => setEditingGame(game)} className="px-3 py-1.5 text-sm text-accent hover:bg-accent/10 rounded-lg transition-colors">编辑</button>
                           <button onClick={() => game.id && handleDeleteGame(game.id)} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">删除</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Bookmarks tab */}
+      {activeTab === "bookmarks" && (
+        <>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setEditingBookmark({ ...emptyBookmark })}
+              className="px-5 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+            >
+              + 添加收藏
+            </button>
+          </div>
+          {bookmarksLoading ? (
+            <p className="text-ink/60">加载中...</p>
+          ) : bookmarksError ? (
+            <p className="text-red-600">加载失败：{bookmarksError}</p>
+          ) : bookmarks.length === 0 ? (
+            <div className="text-center py-12 paper rounded-xl">
+              <p className="text-ink/60 mb-4">还没有收藏</p>
+              <button onClick={() => setEditingBookmark({ ...emptyBookmark })} className="px-5 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors">添加第一个</button>
+            </div>
+          ) : (
+            <div className="paper rounded-xl overflow-hidden shadow-sm">
+              <table className="w-full text-left">
+                <thead className="bg-ink/5">
+                  <tr>
+                    <th className="px-4 py-3 text-sm font-medium text-ink/80">网站</th>
+                    <th className="px-4 py-3 text-sm font-medium text-ink/80 hidden sm:table-cell">分类</th>
+                    <th className="px-4 py-3 text-sm font-medium text-ink/80 hidden md:table-cell">网址</th>
+                    <th className="px-4 py-3 text-sm font-medium text-ink/80 text-right">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/5">
+                  {bookmarks.map((bm) => (
+                    <tr key={bm.id} className="hover:bg-ink/[0.02]">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-ink">{bm.title}</div>
+                        <div className="text-xs text-ink/50 mt-0.5">{bm.description ? bm.description.slice(0, 40) : "无描述"}</div>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-accent/10 text-accent-dark">{bm.category || "未分类"}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-ink/70 hidden md:table-cell truncate max-w-[200px]">{bm.url}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => setEditingBookmark(bm)} className="px-3 py-1.5 text-sm text-accent hover:bg-accent/10 rounded-lg transition-colors">编辑</button>
+                          <button onClick={() => bm.id && handleDeleteBookmark(bm.id)} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">删除</button>
                         </div>
                       </td>
                     </tr>

@@ -2,9 +2,11 @@ import { ExternalLink } from "lucide-react";
 import type { Bookmark } from "@/lib/bookmarks";
 
 export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
+  const safeUrl = /^https?:\/\//.test(bookmark.url) ? bookmark.url : `https://${bookmark.url}`;
+
   const domain = (() => {
     try {
-      return new URL(bookmark.url).hostname;
+      return new URL(safeUrl).hostname;
     } catch {
       return bookmark.url;
     }
@@ -14,7 +16,7 @@ export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
 
   return (
     <a
-      href={bookmark.url}
+      href={safeUrl}
       target="_blank"
       rel="noopener noreferrer"
       className="group block p-5 rounded-xl border border-stone-200/80 bg-white/60 hover:border-accent/30 hover:shadow-soft transition-all"

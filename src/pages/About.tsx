@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MapPin, Coffee, BookOpen, Gamepad2 } from "lucide-react";
+import { MapPin, Coffee, BookOpen, Gamepad2, Tag } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useProfile } from "@/hooks/useProfile";
@@ -25,6 +25,11 @@ export default function About() {
   const { profile } = useProfile();
   const content = profile.aboutContent || defaultAboutContent;
   const timelineItems = (profile.timeline && profile.timeline.length > 0) ? profile.timeline : defaultTimeline;
+
+  const defaultTags = ["独立游戏开发者", "咖啡爱好者", "持续学习中"];
+  const displayTags = (profile.tags && profile.tags.length > 0) ? profile.tags : defaultTags;
+
+  const tagIcons = [MapPin, Gamepad2, Coffee, BookOpen];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -68,22 +73,21 @@ export default function About() {
                   </p>
 
                   <div className="mt-6 space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-stone-500">
-                      <MapPin className="h-4 w-4 text-accent" />
-                      {profile.location}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-stone-500">
-                      <Gamepad2 className="h-4 w-4 text-accent" />
-                      独立游戏开发者
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-stone-500">
-                      <Coffee className="h-4 w-4 text-accent" />
-                      咖啡爱好者
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-stone-500">
-                      <BookOpen className="h-4 w-4 text-accent" />
-                      持续学习中
-                    </div>
+                    {profile.location && (
+                      <div className="flex items-center gap-2 text-sm text-stone-500">
+                        <MapPin className="h-4 w-4 text-accent" />
+                        {profile.location}
+                      </div>
+                    )}
+                    {displayTags.map((tag, i) => {
+                      const Icon = tagIcons[i % tagIcons.length];
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-sm text-stone-500">
+                          <Icon className="h-4 w-4 text-accent" />
+                          {tag}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </AnimatedSection>

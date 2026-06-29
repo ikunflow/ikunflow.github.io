@@ -25,21 +25,25 @@ export interface Bookmark {
 const COLLECTION = "bookmarks";
 
 export async function getBookmarks(): Promise<Bookmark[]> {
-  const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => {
-    const data = docSnap.data();
-    return {
-      id: docSnap.id,
-      title: data.title ?? "",
-      url: data.url ?? "",
-      description: data.description ?? "",
-      category: data.category ?? "",
-      favicon: data.favicon ?? "",
-      createdAt: data.createdAt?.toMillis?.(),
-      updatedAt: data.updatedAt?.toMillis?.(),
-    } as Bookmark;
-  });
+  try {
+    const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        title: data.title ?? "",
+        url: data.url ?? "",
+        description: data.description ?? "",
+        category: data.category ?? "",
+        favicon: data.favicon ?? "",
+        createdAt: data.createdAt?.toMillis?.(),
+        updatedAt: data.updatedAt?.toMillis?.(),
+      } as Bookmark;
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function createBookmark(bookmark: Omit<Bookmark, "id">): Promise<string> {

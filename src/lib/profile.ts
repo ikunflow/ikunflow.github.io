@@ -16,6 +16,7 @@ export interface Profile {
   location: string;
   aboutContent: string;
   timeline: TimelineItem[];
+  tags: string[];
   social: {
     github?: string;
     twitter?: string;
@@ -42,6 +43,7 @@ export async function getProfile(): Promise<Profile | null> {
     location: data.location ?? "",
     aboutContent: data.aboutContent ?? "",
     timeline: Array.isArray(data.timeline) ? data.timeline : [],
+    tags: Array.isArray(data.tags) ? data.tags : [],
     social: data.social ?? {},
     updatedAt: data.updatedAt?.toMillis?.(),
   };

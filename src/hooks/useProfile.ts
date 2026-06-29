@@ -15,6 +15,7 @@ const localProfile: Profile = {
   location: localAuthor.location,
   aboutContent: "",
   timeline: localTimeline,
+  tags: [],
   social: { ...localAuthor.social },
 };
 

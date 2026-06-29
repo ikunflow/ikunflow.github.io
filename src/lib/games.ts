@@ -68,26 +68,30 @@ function normalizeDevLogs(logs: unknown): DevLog[] {
 }
 
 export async function getGames(): Promise<Game[]> {
-  const q = query(collection(db, GAMES_COLLECTION), orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => {
-    const data = docSnap.data();
-    return {
-      id: docSnap.id,
-      slug: data.slug ?? "",
-      title: data.title ?? "",
-      genre: data.genre ?? "",
-      summary: data.summary ?? "",
-      description: data.description ?? "",
-      cover: data.cover ?? "",
-      demoUrl: data.demoUrl ?? "",
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      devLogs: normalizeDevLogs(data.devLogs),
-      featured: data.featured === true,
-      createdAt: data.createdAt?.toMillis?.(),
-      updatedAt: data.updatedAt?.toMillis?.(),
-    } as Game;
-  });
+  try {
+    const q = query(collection(db, GAMES_COLLECTION), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        slug: data.slug ?? "",
+        title: data.title ?? "",
+        genre: data.genre ?? "",
+        summary: data.summary ?? "",
+        description: data.description ?? "",
+        cover: data.cover ?? "",
+        demoUrl: data.demoUrl ?? "",
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        devLogs: normalizeDevLogs(data.devLogs),
+        featured: data.featured === true,
+        createdAt: data.createdAt?.toMillis?.(),
+        updatedAt: data.updatedAt?.toMillis?.(),
+      } as Game;
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getGameBySlug(slug: string): Promise<Game | null> {

@@ -49,27 +49,31 @@ function normalizeDate(value: unknown): string {
 }
 
 export async function getPosts(): Promise<Post[]> {
-  const q = query(
-    collection(db, POSTS_COLLECTION),
-    orderBy("date", "desc")
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => {
-    const data = docSnap.data();
-    return {
-      id: docSnap.id,
-      slug: data.slug ?? "",
-      title: data.title ?? "",
-      date: normalizeDate(data.date),
-      summary: data.summary ?? "",
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      featured: data.featured === true,
-      readingTime: data.readingTime || Math.ceil((data.content?.length || 0) / 500),
-      content: data.content ?? "",
-      createdAt: data.createdAt?.toMillis?.(),
-      updatedAt: data.updatedAt?.toMillis?.(),
-    } as Post;
-  });
+  try {
+    const q = query(
+      collection(db, POSTS_COLLECTION),
+      orderBy("date", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        slug: data.slug ?? "",
+        title: data.title ?? "",
+        date: normalizeDate(data.date),
+        summary: data.summary ?? "",
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        featured: data.featured === true,
+        readingTime: data.readingTime || Math.ceil((data.content?.length || 0) / 500),
+        content: data.content ?? "",
+        createdAt: data.createdAt?.toMillis?.(),
+        updatedAt: data.updatedAt?.toMillis?.(),
+      } as Post;
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {

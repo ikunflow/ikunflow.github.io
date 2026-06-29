@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllPosts, createPost, updatePost, deletePost } from "@/hooks/usePosts";
 import { useAllGames, createGame, updateGame, deleteGame } from "@/hooks/useGames";
@@ -50,6 +50,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<Tab>("posts");
   const [message, setMessage] = useState("");
   const [tagInput, setTagInput] = useState("");
+  const [profileTagInput, setProfileTagInput] = useState("");
 
   // Posts
   const { posts, loading: postsLoading, error: postsError } = useAllPosts();
@@ -569,6 +570,35 @@ export default function Admin() {
           </div>
 
           <div className="pt-4 border-t border-ink/10">
+            <label className="block text-sm font-medium text-ink/80 mb-1">个人标签</label>
+            <p className="text-xs text-stone-400 mb-2">显示在关于页面头像下方，如"独立游戏开发者"、"咖啡爱好者"。留空则显示默认标签。</p>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(editingProfile.tags || []).map((tag, idx) => (
+                <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-accent/10 text-accent-dark">
+                  {tag}<button onClick={() => {
+                    const tags = (editingProfile.tags || []).filter((_, i) => i !== idx);
+                    setEditingProfile({ ...editingProfile, tags });
+                  }} className="hover:text-red-500">×</button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input type="text" value={profileTagInput} onChange={(e) => setProfileTagInput(e.target.value)} onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const tag = profileTagInput.trim();
+                  if (!tag) return;
+                  const tags = [...(editingProfile.tags || [])];
+                  if (!tags.includes(tag)) {
+                    setEditingProfile({ ...editingProfile, tags: [...tags, tag] });
+                  }
+                  setProfileTagInput("");
+                }
+              }} className="flex-1 px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="输入标签后回车" />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-ink/10">
             <label className="block text-sm font-medium text-ink/80 mb-1">关于页面内容（Markdown）</label>
             <p className="text-xs text-stone-400 mb-2">留空则显示默认内容。支持 Markdown 语法，可自由定义「关于」页面的正文区域。</p>
             <textarea value={editingProfile.aboutContent} onChange={(e) => setEditingProfile({ ...editingProfile, aboutContent: e.target.value })} rows={12} className="w-full px-4 py-2 rounded-lg border border-ink/10 bg-white/50 focus:outline-none focus:ring-2 focus:ring-accent/50 font-mono text-sm" placeholder="## 为什么写博客&#10;&#10;在这里写你的关于页面内容..." />
@@ -651,12 +681,19 @@ export default function Admin() {
           <h1 className="text-2xl font-bold font-serif text-ink">后台管理</h1>
           <p className="text-sm text-ink/60 mt-1">已登录：{user.email}</p>
         </div>
-        <button
-          onClick={() => { logout(); navigate("/"); }}
-          className="px-5 py-2 border border-ink/10 rounded-lg hover:bg-ink/5 transition-colors"
-        >
-          退出登录
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link to="/" className="px-4 py-2 text-sm text-stone-600 hover:text-accent border border-ink/10 rounded-lg hover:border-accent/40 transition-colors">首页</Link>
+          <Link to="/posts" className="px-4 py-2 text-sm text-stone-600 hover:text-accent border border-ink/10 rounded-lg hover:border-accent/40 transition-colors">文章</Link>
+          <Link to="/games" className="px-4 py-2 text-sm text-stone-600 hover:text-accent border border-ink/10 rounded-lg hover:border-accent/40 transition-colors">游戏</Link>
+          <Link to="/bookmarks" className="px-4 py-2 text-sm text-stone-600 hover:text-accent border border-ink/10 rounded-lg hover:border-accent/40 transition-colors">收藏</Link>
+          <Link to="/about" className="px-4 py-2 text-sm text-stone-600 hover:text-accent border border-ink/10 rounded-lg hover:border-accent/40 transition-colors">关于</Link>
+          <button
+            onClick={() => { logout(); navigate("/"); }}
+            className="px-4 py-2 text-sm text-red-600 border border-ink/10 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            退出登录
+          </button>
+        </div>
       </div>
 
       {message && (

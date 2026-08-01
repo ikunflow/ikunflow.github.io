@@ -1,116 +1,118 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Feather, Settings, LogIn, Bookmark } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { Sparkles, Menu, X, Code, Palette, Grid } from "lucide-react";
+import LikeButton from "./LikeButton";
 
-const navItems = [
-  { path: "/", label: "首页" },
-  { path: "/posts", label: "文章" },
-  { path: "/games", label: "游戏" },
-  { path: "/bookmarks", label: "收藏" },
-  { path: "/guestbook", label: "留言" },
-  { path: "/about", label: "关于" },
-];
+interface HeaderProps {
+  activeCategory?: string;
+  onSelectCategory?: (category: string) => void;
+}
 
-export default function Header() {
+export default function Header({ activeCategory = 'all', onSelectCategory }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
-  const { user, loading } = useAuth();
 
-  const isActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
+  const categories = [
+    { id: 'all', label: '全部作品', icon: Grid, path: '/' },
+    { id: 'ta', label: 'TA 作品', icon: Palette, path: '/ta' },
+    { id: 'dev', label: '开发作品', icon: Code, path: '/dev' },
+  ];
+
+  const handleCategoryClick = (id: string) => {
+    if (onSelectCategory) {
+      onSelectCategory(id);
+    }
+    setMobileOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-paper/80 border-b border-stone-200/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-stone-950/80 border-b border-stone-200/80 dark:border-stone-800/80 transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
+          {/* Logo & Title */}
           <Link
             to="/"
-            className="flex items-center gap-2 text-ink transition-colors hover:text-accent"
+            onClick={() => handleCategoryClick('all')}
+            className="flex items-center gap-2.5 group"
           >
-            <Feather className="h-6 w-6 text-accent" />
-            <span className="font-serif text-xl font-semibold tracking-tight">
-              橙猫猫的空间
-            </span>
+            <div className="p-2 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-950 shadow-md group-hover:scale-105 transition-transform">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-lg text-stone-900 dark:text-stone-100 tracking-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                作品展示 Showcase
+              </span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400 -mt-1 font-mono tracking-wider">
+                TA & DEVELOPER PORTFOLIO
+              </span>
+            </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`relative px-4 py-2 text-sm font-medium transition-colors rounded-md ${
-                  isActive(item.path)
-                    ? "text-accent"
-                    : "text-stone-600 hover:text-ink hover:bg-stone-100"
-                }`}
-              >
-                {item.label}
-                {isActive(item.path) && (
-                  <span className="absolute bottom-1 left-4 right-4 h-px bg-accent/40" />
-                )}
-              </Link>
-            ))}
-            {!loading && (
-              <Link
-                to={user ? "/admin" : "/login"}
-                className={`ml-2 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  user
-                    ? "bg-accent/10 text-accent hover:bg-accent/20"
-                    : "border border-stone-200 text-stone-600 hover:border-accent/40 hover:text-accent"
-                }`}
-              >
-                {user ? <Settings className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-                {user ? "管理" : "登录"}
-              </Link>
-            )}
+          {/* Navigation Category Tabs (Desktop) */}
+          <nav className="hidden md:flex items-center gap-1.5 p-1 bg-stone-100 dark:bg-stone-900/90 rounded-xl border border-stone-200/70 dark:border-stone-800/70">
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              const isSelected = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isSelected
+                      ? "bg-white dark:bg-stone-800 text-amber-600 dark:text-amber-400 shadow-sm border border-stone-200/60 dark:border-stone-700/60"
+                      : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800/50"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isSelected ? "text-amber-500" : "text-stone-400"}`} />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </nav>
 
+          {/* Right Action: Like Button */}
+          <div className="hidden sm:flex items-center gap-3">
+            <LikeButton />
+          </div>
+
+          {/* Mobile Menu Button */}
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-md text-stone-600 hover:bg-stone-100 transition-colors"
+            className="md:hidden p-2 rounded-xl text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             aria-label="切换菜单"
-            aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
 
+      {/* Mobile Navigation Drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-stone-200/60 bg-paper/95 backdrop-blur-md animate-fade-in">
-          <nav className="container mx-auto px-4 py-3 flex flex-col gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={`px-4 py-3 rounded-md text-base font-medium transition-colors ${
-                  isActive(item.path)
-                    ? "bg-warm-100 text-accent"
-                    : "text-stone-600 hover:bg-stone-100 hover:text-ink"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {!loading && (
-              <Link
-                to={user ? "/admin" : "/login"}
-                onClick={() => setMobileOpen(false)}
-                className={`px-4 py-3 rounded-md text-base font-medium transition-colors flex items-center gap-2 ${
-                  user
-                    ? "bg-accent/10 text-accent"
-                    : "text-stone-600 hover:bg-stone-100 hover:text-ink"
-                }`}
-              >
-                {user ? <Settings className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-                {user ? "管理" : "登录"}
-              </Link>
-            )}
+        <div className="md:hidden border-t border-stone-200 dark:border-stone-800 bg-white/95 dark:bg-stone-950/95 backdrop-blur-xl animate-in slide-in-from-top-2">
+          <nav className="p-4 space-y-3">
+            <div className="space-y-1">
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                const isSelected = activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryClick(cat.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-colors ${
+                      isSelected
+                        ? "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 font-semibold"
+                        : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900"
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${isSelected ? "text-amber-500" : "text-stone-400"}`} />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="pt-2 border-t border-stone-200 dark:border-stone-800 flex justify-center">
+              <LikeButton />
+            </div>
           </nav>
         </div>
       )}

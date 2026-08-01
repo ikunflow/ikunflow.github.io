@@ -13,8 +13,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          markdown: ['react-markdown', 'remark-gfm', 'react-syntax-highlighter', 'gray-matter'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/database'],
+          markdown: ['react-markdown', 'remark-gfm'],
         },
       },
     },
